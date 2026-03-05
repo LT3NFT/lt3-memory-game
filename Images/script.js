@@ -1,30 +1,24 @@
 const IMAGE_FILES = [
+  "Angel.avif",
+  "Devil.avif",
+  "Directions.avif",
+  "Fire.avif",
+  "Loved.avif",
+  "Overgrown.avif",
+  "Snakes.avif",
   "4t_earth.avif",
   "4t_fire.avif",
   "4t_water.avif",
   "4t_wind.avif",
   "Anatomy.avif",
-  "Angel.avif",
   "angelic.avif",
   "anothergenie.avif",
   "balloons.avif",
-  "balloonslotus.avif",
   "cear.avif",
   "clockeyes.avif",
   "clockie.avif",
-  "conflicted.avif",
-  "connected.avif",
-  "crowned.avif",
-  "Devil.avif",
   "devious.avif",
-  "Directions.avif",
-  "directionsfull.avif",
-  "dissolve.avif",
-  "Doves.avif",
-  "Fire.avif",
   "flowereyes.avif",
-  "ghastly.avif",
-  "glitch.avif",
   "grail_reptile.avif",
   "grail_tattoo.avif",
   "grail_zombie.avif",
@@ -33,36 +27,14 @@ const IMAGE_FILES = [
   "hannibal2.avif",
   "hannibal3.avif",
   "hearttoheart.avif",
-  "hearttohearttoheart.avif",
-  "Hoodie.avif",
-  "hoodie2.avif",
-  "Loved.avif",
-  "LovedBridge.avif",
-  "moss.avif",
+  "hoodie.avif",
   "mossy.avif",
-  "mystical.avif",
-  "nakeddevil.avif",
-  "natural.avif",
-  "Overgrown.avif",
-  "paint.avif",
-  "pen.avif",
-  "projector.avif",
   "psychedelic.avif",
-  "pumpkin.avif",
   "ski.avif",
-  "SkiSki.avif",
   "smoke.avif",
-  "Smokie.avif",
-  "Snakes.avif",
-  "snakey.avif",
-  "space.avif",
   "spacer.avif",
   "sparkle2.avif",
   "storm.avif",
-  "Sundown.avif",
-  "thinker.avif",
-  "universal.avif",
-  "windy.avif",
   "worldender.avif",
   "Yang.avif",
   "Yin.avif",
@@ -70,15 +42,6 @@ const IMAGE_FILES = [
 
 const LEVELS = [3, 4, 6, 8];
 const LEVEL_COUNTDOWN = [3, 3, 5, 5];
-
-const MUSIC_FILES = [
-  "Out of Flux - morning.mp3",
-  "Out of Flux - together.mp3",
-  "Skygaze - COTTON CLOUDS.mp3",
-  "Skygaze - POST BLOOM - Creative Cut - Chill.mp3",
-  "Wav Two - Ocean Hued - Instrumental version.mp3",
-  "Joley - Pine.mp3"
-];
 
 let currentLevel = 0;
 let flippedCards = [];
@@ -89,12 +52,6 @@ let seconds = 0;
 let timerInterval = null;
 let bestTime = null;
 let audioCtx = null;
-let backgroundMusic = null;
-let soundEffectsMuted = false;
-let musicStarted = false;
-let musicVolume = 0.25;
-let currentMusicIndex = 0;
-let isMusicPaused = false;
 
 const introScreen = document.getElementById("intro-screen");
 const gameEl = document.getElementById("game");
@@ -125,35 +82,6 @@ function dismissIntro() {
   if (introDone) return;
   introDone = true;
   if (introTimeout) clearTimeout(introTimeout);
-  
-  // Resume audio context (required for autoplay)
-  getAudioCtx();
-  
-  // Start music - user has interacted by clicking
-  startBackgroundMusic();
-  
-  // Ensure music plays after a short delay to allow audio context to be ready
-  setTimeout(() => {
-    if (backgroundMusic && musicVolume > 0 && !isMusicPaused) {
-      const playPromise = backgroundMusic.play();
-      if (playPromise !== undefined) {
-        playPromise.then(() => {
-          updatePlayPauseButton();
-        }).catch(e => {
-          console.log("Play failed, will retry:", e);
-          // Retry once more after a brief delay
-          setTimeout(() => {
-            if (backgroundMusic && backgroundMusic.paused && musicVolume > 0) {
-              backgroundMusic.play().then(() => {
-                updatePlayPauseButton();
-              }).catch(err => console.log("Retry failed:", err));
-            }
-          }, 200);
-        });
-      }
-    }
-  }, 100);
-  
   introScreen.style.transition = "opacity 0.4s ease";
   introScreen.style.opacity = "0";
   introScreen.style.pointerEvents = "none";
@@ -163,11 +91,6 @@ function dismissIntro() {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         gameEl.classList.add("visible");
-        // Show audio controls at the exact same time as game container
-        const audioControls = document.getElementById("audio-controls");
-        if (audioControls) {
-          audioControls.classList.add("visible");
-        }
         buildBoard();
       });
     });
@@ -186,16 +109,7 @@ function getAudioCtx() {
 
 function startGame() {
   getAudioCtx();
-  startBackgroundMusic();
   startBtn.style.display = "none";
-  
-  // Show audio controls - they should already be visible if intro was dismissed
-  // but ensure they're visible when game starts directly
-  const audioControls = document.getElementById("audio-controls");
-  if (audioControls && !audioControls.classList.contains("visible")) {
-    audioControls.classList.add("visible");
-  }
-  
   buildBoard();
 }
 
@@ -231,7 +145,6 @@ function showLevelSplash(text, callback) {
         setTimeout(() => {
           levelSplash.textContent = "";
           levelSplash.className = "";
-          levelSplash.style.display = "";
           board.style.visibility = "visible";
           if (callback) callback();
         }, 400);
@@ -295,7 +208,7 @@ async function showWinScreen() {
     const tier = getScoreTier(seconds);
 
     const [imgBase64, faviconBase64] = await Promise.all([
-      toBase64(`Images/${tier.img}`),
+      toBase64(`images/${tier.img}`),
       toBase64("favicon.png")
     ]);
 
@@ -317,17 +230,6 @@ async function showWinScreen() {
 
 function downloadScorecard() {
   const card = document.getElementById("scorecard");
-  
-  // On mobile, temporarily remove scale transform for download to capture full size
-  const isMobile = window.innerWidth <= 768;
-  const computedStyle = window.getComputedStyle(card);
-  const hasScaleTransform = computedStyle.transform && computedStyle.transform !== 'none' && computedStyle.transform.includes('scale');
-  
-  // Temporarily remove scale transform for download
-  if (isMobile && hasScaleTransform) {
-    card.style.transform = 'none';
-  }
-  
   html2canvas(card, {
     backgroundColor: "#fdf8ee",
     scale: 2,
@@ -336,11 +238,6 @@ function downloadScorecard() {
     logging: false,
     imageTimeout: 0,
   }).then(canvas => {
-    // Restore scale transform after capture
-    if (isMobile && hasScaleTransform) {
-      card.style.transform = '';
-    }
-    
     const link = document.createElement("a");
     link.download = "LT3ScoreCard.png";
     link.href = canvas.toDataURL("image/png");
@@ -348,17 +245,12 @@ function downloadScorecard() {
     link.click();
     document.body.removeChild(link);
   }).catch(err => {
-    // Restore scale transform on error
-    if (isMobile && hasScaleTransform) {
-      card.style.transform = '';
-    }
     console.error("Download failed:", err);
     alert("Download failed. Try right-clicking the scorecard and saving as image.");
   });
 }
 
 function playCardFlip() {
-  if (soundEffectsMuted) return;
   try {
     const ctx = getAudioCtx();
     const bufferSize = Math.floor(ctx.sampleRate * 0.18);
@@ -386,7 +278,6 @@ function playCardFlip() {
 }
 
 function playChime() {
-  if (soundEffectsMuted) return;
   try {
     const ctx = getAudioCtx();
     [523.25, 659.25, 783.99].forEach((freq, i) => {
@@ -405,7 +296,6 @@ function playChime() {
 }
 
 function playBuzz() {
-  if (soundEffectsMuted) return;
   try {
     const ctx = getAudioCtx();
     const osc = ctx.createOscillator();
@@ -423,7 +313,6 @@ function playBuzz() {
 }
 
 function playWinFanfare() {
-  if (soundEffectsMuted) return;
   try {
     const ctx = getAudioCtx();
     [
@@ -552,46 +441,20 @@ function buildBoard() {
   const pairs = shuffle([...selectedImages, ...selectedImages]);
 
   const totalCards = pairs.length;
-  let columns, cardSize;
-  
-  if (window.innerWidth <= 768) {
-    // Mobile: smaller cards, adjust columns for better layout
-    cardSize = window.innerWidth <= 480 ? 80 : 100;
-    if (totalCards === 6) {
-      columns = 3; // 3x2 grid
-    } else if (totalCards === 8) {
-      columns = 4; // 4x2 grid
-    } else if (totalCards === 12) {
-      columns = 3; // 3x4 grid
-    } else {
-      columns = 4; // 4x4 grid
-    }
-  } else {
-    // Desktop: keep original
-    columns = totalCards === 6 ? 3 : 4;
-    cardSize = 160;
-  }
-  
-  board.style.gridTemplateColumns = `repeat(${columns}, ${cardSize}px)`;
+  const columns = totalCards === 6 ? 3 : 4;
+  board.style.gridTemplateColumns = `repeat(${columns}, 160px)`;
 
   const cardEls = [];
   pairs.forEach((filename) => {
     const card = document.createElement("div");
     card.classList.add("card");
-    if (window.innerWidth <= 768) {
-      card.style.width = cardSize + "px";
-      card.style.height = cardSize + "px";
-    } else {
-      card.style.width = "";
-      card.style.height = "";
-    }
     card.dataset.image = filename;
     const inner = document.createElement("div");
     inner.classList.add("card-inner");
     const front = document.createElement("div");
     front.classList.add("card-front");
     const img = document.createElement("img");
-    img.src = `Images/${filename}`;
+    img.src = `images/${filename}`;
     img.alt = filename.replace(/\.[^.]+$/, "");
     front.appendChild(img);
     const back = document.createElement("div");
@@ -625,7 +488,6 @@ function onCardClick(e) {
   if (card.classList.contains("flipped")) return;
   if (card.classList.contains("matched")) return;
   playCardFlip();
-  card.style.transform = "none";
   card.classList.add("flipped");
   flippedCards.push(card);
   if (flippedCards.length === 2) {
@@ -668,11 +530,9 @@ function checkForMatch() {
     playBuzz();
     setTimeout(() => {
       playCardFlip();
-      first.style.transform = "none";
       first.classList.remove("flipped", "wrong");
       setTimeout(() => {
         playCardFlip();
-        second.style.transform = "none";
         second.classList.remove("flipped", "wrong");
       }, 80);
       flippedCards = [];
@@ -693,181 +553,4 @@ function shuffle(array) {
     [array[i], array[j]] = [array[j], array[i]];
   }
   return array;
-}
-
-function toggleSoundEffects() {
-  soundEffectsMuted = !soundEffectsMuted;
-  const sfxToggle = document.getElementById("sfx-toggle");
-  if (soundEffectsMuted) {
-    sfxToggle.classList.remove("sfx-on");
-    sfxToggle.classList.add("sfx-off");
-  } else {
-    sfxToggle.classList.remove("sfx-off");
-    sfxToggle.classList.add("sfx-on");
-  }
-}
-
-function toggleRadioMute() {
-  const volumeSlider = document.getElementById("volume-slider");
-  const radioIcon = document.getElementById("radio-icon");
-  
-  if (musicVolume === 0) {
-    // Unmute: restore to previous volume or default to 0.25
-    musicVolume = 0.25;
-    volumeSlider.value = musicVolume;
-  } else {
-    // Mute: save current volume and set to 0
-    musicVolume = 0;
-    volumeSlider.value = 0;
-  }
-  
-  updateMusicVolume();
-}
-
-function updateMusicVolume() {
-  const volumeSlider = document.getElementById("volume-slider");
-  musicVolume = parseFloat(volumeSlider.value);
-  const radioIcon = document.getElementById("radio-icon");
-  
-  if (backgroundMusic) {
-    backgroundMusic.volume = musicVolume;
-    if (musicVolume === 0) {
-      radioIcon.src = "radiooff.png";
-      backgroundMusic.pause();
-      isMusicPaused = true;
-      updatePlayPauseButton();
-    } else {
-      radioIcon.src = "radioon.png";
-      if (musicStarted && backgroundMusic.paused && !isMusicPaused) {
-        backgroundMusic.play().catch(e => console.log("Play failed:", e));
-        updatePlayPauseButton();
-      }
-    }
-  } else {
-    // Update icon even if music hasn't started yet
-    radioIcon.src = musicVolume === 0 ? "radiooff.png" : "radioon.png";
-  }
-}
-
-function startBackgroundMusic() {
-  if (musicStarted) return;
-  musicStarted = true;
-  
-  currentMusicIndex = Math.floor(Math.random() * MUSIC_FILES.length);
-  loadAndPlayMusic();
-}
-
-function loadAndPlayMusic() {
-  if (backgroundMusic) {
-    backgroundMusic.pause();
-    backgroundMusic = null;
-  }
-  
-  const track = MUSIC_FILES[currentMusicIndex];
-  backgroundMusic = new Audio(track);
-  backgroundMusic.loop = true;
-  backgroundMusic.volume = musicVolume;
-  
-  backgroundMusic.addEventListener('ended', () => {
-    skipSong(1);
-  });
-  
-  backgroundMusic.addEventListener('canplaythrough', () => {
-    // Try to play when audio is ready
-    if (musicVolume > 0 && !isMusicPaused) {
-      const playPromise = backgroundMusic.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(e => {
-          console.log("Autoplay prevented:", e);
-        });
-      }
-      updatePlayPauseButton();
-    }
-  });
-  
-  updatePlayPauseButton();
-  
-  // Try to play immediately (will work if user has interacted)
-  if (musicVolume > 0 && !isMusicPaused) {
-    const playPromise = backgroundMusic.play();
-    if (playPromise !== undefined) {
-      playPromise.catch(e => {
-        console.log("Autoplay prevented, will play on user interaction");
-      });
-    }
-  }
-  updatePlayPauseButton();
-}
-
-function togglePlayPause() {
-  if (!backgroundMusic || musicVolume === 0) return;
-  
-  isMusicPaused = !isMusicPaused;
-  
-  if (isMusicPaused) {
-    backgroundMusic.pause();
-  } else {
-    backgroundMusic.play().catch(e => console.log("Play failed:", e));
-  }
-  
-  updatePlayPauseButton();
-}
-
-function updatePlayPauseButton() {
-  const playPauseBtn = document.getElementById("play-pause-btn");
-  if (!playPauseBtn) return;
-  
-  if (isMusicPaused || (backgroundMusic && backgroundMusic.paused)) {
-    playPauseBtn.textContent = "▶";
-    playPauseBtn.classList.add("play-icon");
-    playPauseBtn.classList.remove("pause-icon");
-  } else {
-    playPauseBtn.textContent = "⏸";
-    playPauseBtn.classList.add("pause-icon");
-    playPauseBtn.classList.remove("play-icon");
-  }
-}
-
-function skipSong(direction) {
-  if (!musicStarted || MUSIC_FILES.length === 0) return;
-  
-  currentMusicIndex += direction;
-  
-  if (currentMusicIndex < 0) {
-    currentMusicIndex = MUSIC_FILES.length - 1;
-  } else if (currentMusicIndex >= MUSIC_FILES.length) {
-    currentMusicIndex = 0;
-  }
-  
-  const wasPlaying = backgroundMusic && !backgroundMusic.paused && !isMusicPaused;
-  loadAndPlayMusic();
-  
-  if (wasPlaying && musicVolume > 0) {
-    isMusicPaused = false;
-    backgroundMusic.play().catch(e => console.log("Play failed:", e));
-    updatePlayPauseButton();
-  }
-}
-
-// Start music on first user interaction (desktop)
-// On mobile, music will start automatically when intro dismisses
-const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-if (!isMobile) {
-  document.addEventListener('click', function startMusicOnInteraction() {
-    if (!musicStarted) {
-      startBackgroundMusic();
-    }
-    document.removeEventListener('click', startMusicOnInteraction);
-  }, { once: true });
-}
-
-// On mobile, start music when intro screen is shown (will play after user interaction or auto-dismiss)
-if (isMobile) {
-  // Try to start music immediately on mobile - will work if autoplay is allowed
-  // Otherwise it will start when dismissIntro() is called
-  setTimeout(() => {
-    if (!musicStarted) {
-      startBackgroundMusic();
-    }
-  }, 100);
 }
