@@ -227,8 +227,7 @@ h1 {
   object-position: center;
   flex-shrink: 0;
   border-right: 3px solid #3d2b00;
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
+  image-rendering: auto;
 }
 
 #scorecard-info {
@@ -279,12 +278,10 @@ h1 {
 }
 
 #scorecard-favicon {
-  width: 22px;
-  height: 22px;
+  width: 32px;
+  height: 32px;
   object-fit: contain;
-  image-rendering: -webkit-optimize-contrast;
-  image-rendering: crisp-edges;
-  image-rendering: pixelated;
+  image-rendering: auto;
 }
 
 #scorecard-game-title {

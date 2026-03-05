@@ -333,30 +333,40 @@ function downloadScorecard() {
   }
   card.style.borderRadius = '0';
   
+  // Get exact dimensions before capture
+  const cardRect = card.getBoundingClientRect();
+  const cardWidth = Math.ceil(cardRect.width);
+  const cardHeight = Math.ceil(cardRect.height);
+  
   html2canvas(card, {
     backgroundColor: "#fdf8ee",
-    scale: 3,
+    scale: 4,
     useCORS: true,
     allowTaint: true,
     logging: false,
     imageTimeout: 0,
-    windowWidth: card.offsetWidth,
-    windowHeight: card.offsetHeight,
+    width: cardWidth,
+    height: cardHeight,
+    x: 0,
+    y: 0,
   }).then(canvas => {
-    // Crop to exact card dimensions (remove any white space from rounded corners)
-    const ctx = canvas.getContext('2d');
-    const cardRect = card.getBoundingClientRect();
-    const cardWidth = cardRect.width;
-    const cardHeight = cardRect.height;
+    // Crop to exact card dimensions (remove any extra space)
+    const scale = 4;
+    const targetWidth = cardWidth * scale;
+    const targetHeight = cardHeight * scale;
     
     // Create a new canvas with exact dimensions
     const croppedCanvas = document.createElement('canvas');
-    croppedCanvas.width = cardWidth * 3; // Match the scale
-    croppedCanvas.height = cardHeight * 3;
+    croppedCanvas.width = targetWidth;
+    croppedCanvas.height = targetHeight;
     const croppedCtx = croppedCanvas.getContext('2d');
     
-    // Draw the original canvas to the cropped one
-    croppedCtx.drawImage(canvas, 0, 0);
+    // Fill with background color first
+    croppedCtx.fillStyle = "#fdf8ee";
+    croppedCtx.fillRect(0, 0, targetWidth, targetHeight);
+    
+    // Draw the original canvas, cropping to exact dimensions
+    croppedCtx.drawImage(canvas, 0, 0, targetWidth, targetHeight, 0, 0, targetWidth, targetHeight);
     
     // Restore original styles
     card.style.borderRadius = originalBorderRadius;
@@ -366,7 +376,7 @@ function downloadScorecard() {
     
     const link = document.createElement("a");
     link.download = "LT3ScoreCard.png";
-    link.href = croppedCanvas.toDataURL("image/png");
+    link.href = croppedCanvas.toDataURL("image/png", 1.0);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
