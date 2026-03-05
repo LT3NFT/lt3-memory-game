@@ -395,9 +395,11 @@ async function downloadScorecard() {
   const cardWidth = Math.floor(cardRect.width);
   const cardHeight = Math.floor(cardRect.height);
   
-  // On mobile, account for any potential extra pixels from scaling
-  const actualWidth = isMobile ? 420 : cardWidth; // Scorecard is always 420px actual size
-  const actualHeight = isMobile ? Math.floor(240 + 16 + 16) : cardHeight; // Image height + padding
+  // On mobile, use exact card dimensions (420px width, includes border)
+  // The card has a 3px border, so actual content is 420px total
+  const actualWidth = isMobile ? 420 : cardWidth;
+  // Height is image (240px) + top padding (16px) + bottom padding (16px) + border (3px top + 3px bottom) = 278px
+  const actualHeight = isMobile ? 278 : cardHeight;
   
   html2canvas(card, {
     backgroundColor: "#fdf8ee",
@@ -431,34 +433,103 @@ async function downloadScorecard() {
   }).then(canvas => {
     // Crop to exact card dimensions (remove any extra space)
     const scale = 4;
+    
+    // On mobile, find the actual card boundaries in the canvas
+    if (isMobile) {
+      // The card should be exactly 420px wide and 278px tall (including border)
+      const targetWidth = 420 * scale;
+      const targetHeight = 278 * scale;
+      
+      // Find where the card actually starts in the canvas (accounting for any offset)
+      // Look for the brown border color (#3d2b00) to find the card edges
+      const ctx = canvas.getContext('2d');
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imageData.data;
+      
+      // Find left edge (first brown pixel)
+      let leftEdge = 0;
+      for (let x = 0; x < canvas.width; x++) {
+        for (let y = 0; y < canvas.height; y++) {
+          const idx = (y * canvas.width + x) * 4;
+          const r = data[idx];
+          const g = data[idx + 1];
+          const b = data[idx + 2];
+          // Check if it's the brown border color (#3d2b00 = rgb(61, 43, 0))
+          if (r === 61 && g === 43 && b === 0) {
+            leftEdge = x;
+            break;
+          }
+        }
+        if (leftEdge > 0) break;
+      }
+      
+      // Find top edge
+      let topEdge = 0;
+      for (let y = 0; y < canvas.height; y++) {
+        for (let x = 0; x < canvas.width; x++) {
+          const idx = (y * canvas.width + x) * 4;
+          const r = data[idx];
+          const g = data[idx + 1];
+          const b = data[idx + 2];
+          if (r === 61 && g === 43 && b === 0) {
+            topEdge = y;
+            break;
+          }
+        }
+        if (topEdge > 0) break;
+      }
+      
+      // Create cropped canvas starting from the card's actual position
+      const croppedCanvas = document.createElement('canvas');
+      croppedCanvas.width = targetWidth;
+      croppedCanvas.height = targetHeight;
+      const croppedCtx = croppedCanvas.getContext('2d');
+      
+      // Draw from the found card position
+      croppedCtx.drawImage(
+        canvas,
+        leftEdge,
+        topEdge,
+        targetWidth,
+        targetHeight,
+        0,
+        0,
+        targetWidth,
+        targetHeight
+      );
+      
+      // Use the cropped canvas
+      const link = document.createElement("a");
+      link.download = "LT3ScoreCard.png";
+      link.href = croppedCanvas.toDataURL("image/png", 1.0);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Restore original styles
+      card.style.borderRadius = originalBorderRadius;
+      if (isMobile && hasScaleTransform) {
+        card.style.transform = originalTransform;
+      }
+      return;
+    }
+    
+    // Desktop: use original cropping logic
     const targetWidth = actualWidth * scale;
     const targetHeight = actualHeight * scale;
     
-    // On mobile, crop a bit tighter to remove cream outline
-    const cropOffset = isMobile ? 2 : 0; // Remove 2px on each side for mobile
-    
     // Create a new canvas with exact dimensions
     const croppedCanvas = document.createElement('canvas');
-    croppedCanvas.width = targetWidth - (cropOffset * 2 * scale);
-    croppedCanvas.height = targetHeight - (cropOffset * 2 * scale);
+    croppedCanvas.width = targetWidth;
+    croppedCanvas.height = targetHeight;
     const croppedCtx = croppedCanvas.getContext('2d');
     
     // Fill with background color first
     croppedCtx.fillStyle = "#fdf8ee";
-    croppedCtx.fillRect(0, 0, croppedCanvas.width, croppedCanvas.height);
+    croppedCtx.fillRect(0, 0, targetWidth, targetHeight);
     
-    // Draw the original canvas, cropping to exact dimensions (with offset on mobile)
-    croppedCtx.drawImage(
-      canvas, 
-      cropOffset * scale, 
-      cropOffset * scale, 
-      targetWidth - (cropOffset * 2 * scale), 
-      targetHeight - (cropOffset * 2 * scale),
-      0, 
-      0, 
-      croppedCanvas.width, 
-      croppedCanvas.height
-    );
+    // Draw the original canvas, cropping to exact dimensions
+    croppedCtx.drawImage(canvas, 0, 0, targetWidth, targetHeight, 0, 0, targetWidth, targetHeight);
     
     // Restore original styles
     card.style.borderRadius = originalBorderRadius;
