@@ -1,11 +1,11 @@
 @font-face {
   font-family: 'TheClouds';
-  src: url('fonts/Theclouds.otf') format('opentype');
+  src: url('Fonts/Theclouds.otf') format('opentype');
 }
 
 @font-face {
   font-family: 'LittleDreams';
-  src: url('fonts/Littledreams-Regular.otf') format('opentype');
+  src: url('Fonts/Littledreams-Regular.otf') format('opentype');
 }
 
 * {
@@ -385,7 +385,7 @@ h1 {
 
 .card-back {
   border: 3px solid #3d2b00;
-  background-image: url('images/CardBack.png');
+  background-image: url('Images/CardBack.png');
   background-size: cover;
   background-position: center;
   border-radius: 8px;

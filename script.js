@@ -295,7 +295,7 @@ async function showWinScreen() {
     const tier = getScoreTier(seconds);
 
     const [imgBase64, faviconBase64] = await Promise.all([
-      toBase64(`images/${tier.img}`),
+      toBase64(`Images/${tier.img}`),
       toBase64("favicon.png")
     ]);
 
@@ -591,7 +591,7 @@ function buildBoard() {
     const front = document.createElement("div");
     front.classList.add("card-front");
     const img = document.createElement("img");
-    img.src = `images/${filename}`;
+    img.src = `Images/${filename}`;
     img.alt = filename.replace(/\.[^.]+$/, "");
     front.appendChild(img);
     const back = document.createElement("div");
