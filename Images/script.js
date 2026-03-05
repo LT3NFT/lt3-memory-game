@@ -1,0 +1,556 @@
+const IMAGE_FILES = [
+  "Angel.avif",
+  "Devil.avif",
+  "Directions.avif",
+  "Fire.avif",
+  "Loved.avif",
+  "Overgrown.avif",
+  "Snakes.avif",
+  "4t_earth.avif",
+  "4t_fire.avif",
+  "4t_water.avif",
+  "4t_wind.avif",
+  "Anatomy.avif",
+  "angelic.avif",
+  "anothergenie.avif",
+  "balloons.avif",
+  "cear.avif",
+  "clockeyes.avif",
+  "clockie.avif",
+  "devious.avif",
+  "flowereyes.avif",
+  "grail_reptile.avif",
+  "grail_tattoo.avif",
+  "grail_zombie.avif",
+  "grailgenie.avif",
+  "hannibal1.avif",
+  "hannibal2.avif",
+  "hannibal3.avif",
+  "hearttoheart.avif",
+  "hoodie.avif",
+  "mossy.avif",
+  "psychedelic.avif",
+  "ski.avif",
+  "smoke.avif",
+  "spacer.avif",
+  "sparkle2.avif",
+  "storm.avif",
+  "worldender.avif",
+  "Yang.avif",
+  "Yin.avif",
+];
+
+const LEVELS = [3, 4, 6, 8];
+const LEVEL_COUNTDOWN = [3, 3, 5, 5];
+
+let currentLevel = 0;
+let flippedCards = [];
+let lockBoard = false;
+let matchesFound = 0;
+let moves = 0;
+let seconds = 0;
+let timerInterval = null;
+let bestTime = null;
+let audioCtx = null;
+
+const introScreen = document.getElementById("intro-screen");
+const gameEl = document.getElementById("game");
+const board = document.getElementById("board");
+const status = document.getElementById("status");
+const moveCount = document.getElementById("move-count");
+const timerDisplay = document.getElementById("timer");
+const bestTimeDisplay = document.getElementById("best-time");
+const playAgainBtn = document.getElementById("play-again");
+const countdownEl = document.getElementById("countdown");
+const levelDotsEl = document.getElementById("level-dots");
+const startBtn = document.getElementById("start-btn");
+const levelSplash = document.getElementById("level-splash");
+const winTitle = document.getElementById("win-title");
+const winStats = document.getElementById("win-stats");
+const scorecardWrap = document.getElementById("scorecard-wrap");
+const scorecardImg = document.getElementById("scorecard-img");
+const scorecardTime = document.getElementById("scorecard-time");
+const scorecardMessage = document.getElementById("scorecard-message");
+const scorecardSub = document.getElementById("scorecard-sub");
+const scorecardFavicon = document.getElementById("scorecard-favicon");
+
+// ===== INTRO =====
+let introDone = false;
+let introTimeout = null;
+
+function dismissIntro() {
+  if (introDone) return;
+  introDone = true;
+  if (introTimeout) clearTimeout(introTimeout);
+  introScreen.style.transition = "opacity 0.4s ease";
+  introScreen.style.opacity = "0";
+  introScreen.style.pointerEvents = "none";
+  setTimeout(() => {
+    introScreen.style.display = "none";
+    gameEl.classList.remove("hidden");
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        gameEl.classList.add("visible");
+        buildBoard();
+      });
+    });
+  }, 400);
+}
+
+introTimeout = setTimeout(dismissIntro, 3400);
+introScreen.addEventListener("click", dismissIntro);
+
+// ===== AUDIO =====
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+
+function startGame() {
+  getAudioCtx();
+  startBtn.style.display = "none";
+  buildBoard();
+}
+
+// ===== IMAGE TO BASE64 =====
+function toBase64(src) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      canvas.getContext("2d").drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    };
+    img.onerror = () => resolve(src);
+    img.src = src + "?v=" + Date.now();
+  });
+}
+
+function showLevelSplash(text, callback) {
+  board.style.visibility = "hidden";
+  levelSplash.style.display = "block";
+  levelSplash.style.visibility = "visible";
+  levelSplash.textContent = text;
+  levelSplash.className = "";
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      levelSplash.classList.add("show");
+      setTimeout(() => {
+        levelSplash.classList.remove("show");
+        levelSplash.classList.add("hide");
+        setTimeout(() => {
+          levelSplash.textContent = "";
+          levelSplash.className = "";
+          board.style.visibility = "visible";
+          if (callback) callback();
+        }, 400);
+      }, 1200);
+    });
+  });
+}
+
+function launchConfetti() {
+  const colors = ["#4ecca3", "#ff4444", "#ffd166", "#a78bfa", "#f472b6", "#60a5fa", "#3d2b00"];
+  for (let i = 0; i < 120; i++) {
+    setTimeout(() => {
+      const piece = document.createElement("div");
+      piece.classList.add("confetti-piece");
+      piece.style.left = Math.random() * 100 + "vw";
+      piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.width = (8 + Math.random() * 8) + "px";
+      piece.style.height = (10 + Math.random() * 10) + "px";
+      piece.style.borderRadius = Math.random() > 0.5 ? "50%" : "2px";
+      const dur = 2 + Math.random() * 2;
+      piece.style.animationDuration = dur + "s";
+      piece.style.animationDelay = "0s";
+      document.body.appendChild(piece);
+      setTimeout(() => piece.remove(), dur * 1000 + 100);
+    }, i * 18);
+  }
+}
+
+function getScoreTier(secs) {
+  if (secs <= 29) return {
+    img: "page3.png",
+    message: "Wow! Under 30 Seconds!",
+    sub: "Your memory is incredible!"
+  };
+  if (secs <= 45) return {
+    img: "page2.png",
+    message: "Great Job!",
+    sub: "Your memory is seriously impressive."
+  };
+  return {
+    img: "page1.png",
+    message: "Nice Work!",
+    sub: "Can you beat that score next time?"
+  };
+}
+
+async function showWinScreen() {
+  const isNewBest = bestTime === null || seconds < bestTime;
+  if (isNewBest) {
+    bestTime = seconds;
+    bestTimeDisplay.textContent = `Best: ${bestTime}s`;
+  }
+
+  board.classList.add("fade-out");
+
+  setTimeout(async () => {
+    board.style.display = "none";
+    countdownEl.style.display = "none";
+    levelSplash.style.display = "none";
+
+    const tier = getScoreTier(seconds);
+
+    const [imgBase64, faviconBase64] = await Promise.all([
+      toBase64(`images/${tier.img}`),
+      toBase64("favicon.png")
+    ]);
+
+    scorecardImg.src = imgBase64;
+    scorecardFavicon.src = faviconBase64;
+    scorecardTime.textContent = seconds + "s";
+    scorecardMessage.textContent = tier.message;
+    scorecardSub.textContent = tier.sub;
+
+    scorecardWrap.style.cssText = "display: flex; flex-direction: column; align-items: center; gap: 16px; margin-top: 10px; opacity: 0; transition: opacity 0.6s ease;";
+
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        scorecardWrap.style.opacity = "1";
+      });
+    });
+  }, 650);
+}
+
+function downloadScorecard() {
+  const card = document.getElementById("scorecard");
+  html2canvas(card, {
+    backgroundColor: "#fdf8ee",
+    scale: 2,
+    useCORS: true,
+    allowTaint: true,
+    logging: false,
+    imageTimeout: 0,
+  }).then(canvas => {
+    const link = document.createElement("a");
+    link.download = "LT3ScoreCard.png";
+    link.href = canvas.toDataURL("image/png");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }).catch(err => {
+    console.error("Download failed:", err);
+    alert("Download failed. Try right-clicking the scorecard and saving as image.");
+  });
+}
+
+function playCardFlip() {
+  try {
+    const ctx = getAudioCtx();
+    const bufferSize = Math.floor(ctx.sampleRate * 0.18);
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      const t = i / bufferSize;
+      const envelope = Math.sin(t * Math.PI) * Math.pow(1 - t, 1.5);
+      data[i] = (Math.random() * 2 - 1) * envelope;
+    }
+    const src = ctx.createBufferSource();
+    src.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = "lowpass";
+    filter.frequency.value = 400;
+    filter.Q.value = 0.5;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(1.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    src.start();
+  } catch(e) {}
+}
+
+function playChime() {
+  try {
+    const ctx = getAudioCtx();
+    [523.25, 659.25, 783.99].forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.15, ctx.currentTime + i * 0.15);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 0.4);
+      osc.start(ctx.currentTime + i * 0.15);
+      osc.stop(ctx.currentTime + i * 0.15 + 0.4);
+    });
+  } catch(e) {}
+}
+
+function playBuzz() {
+  try {
+    const ctx = getAudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = "sawtooth";
+    osc.frequency.setValueAtTime(120, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(60, ctx.currentTime + 0.3);
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.3);
+  } catch(e) {}
+}
+
+function playWinFanfare() {
+  try {
+    const ctx = getAudioCtx();
+    [
+      { freq: 523.25, time: 0 },
+      { freq: 659.25, time: 0.12 },
+      { freq: 783.99, time: 0.24 },
+      { freq: 1046.5, time: 0.36 },
+      { freq: 783.99, time: 0.52 },
+      { freq: 1046.5, time: 0.64 },
+    ].forEach(({ freq, time }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.type = "sine";
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, ctx.currentTime + time);
+      gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + time + 0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + time + 0.35);
+      osc.start(ctx.currentTime + time);
+      osc.stop(ctx.currentTime + time + 0.35);
+    });
+  } catch(e) {}
+}
+
+function renderDots() {
+  levelDotsEl.innerHTML = "";
+  LEVELS.forEach((_, i) => {
+    const dot = document.createElement("div");
+    dot.classList.add("dot");
+    if (i < currentLevel) dot.classList.add("complete");
+    if (i === currentLevel) dot.classList.add("active");
+    levelDotsEl.appendChild(dot);
+  });
+}
+
+function startTimer() {
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    seconds++;
+    timerDisplay.textContent = `Time: ${seconds}s`;
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+}
+
+function resetStats() {
+  moves = 0;
+  seconds = 0;
+  moveCount.textContent = "Moves: 0";
+  timerDisplay.textContent = "Time: 0s";
+}
+
+function flipCardsUp(cards, callback) {
+  cards.forEach((card, i) => {
+    setTimeout(() => {
+      playCardFlip();
+      card.classList.add("flipped");
+      if (i === cards.length - 1 && callback) setTimeout(callback, 200);
+    }, i * 80);
+  });
+}
+
+function flipCardsDown(cards, callback) {
+  cards.forEach((card, i) => {
+    setTimeout(() => {
+      playCardFlip();
+      card.classList.remove("flipped");
+      if (i === cards.length - 1 && callback) setTimeout(callback, 200);
+    }, i * 80);
+  });
+}
+
+function runPreviewCountdown(secs, callback) {
+  let count = secs;
+  function showCount() {
+    countdownEl.textContent = count;
+    countdownEl.classList.remove("pulse");
+    requestAnimationFrame(() => requestAnimationFrame(() => countdownEl.classList.add("pulse")));
+  }
+  showCount();
+  const interval = setInterval(() => {
+    count--;
+    if (count > 0) {
+      showCount();
+    } else {
+      countdownEl.textContent = "";
+      countdownEl.classList.remove("pulse");
+      clearInterval(interval);
+      callback();
+    }
+  }, 1000);
+}
+
+function buildBoard() {
+  winTitle.className = "";
+  winTitle.textContent = "";
+  winStats.className = "";
+  winStats.innerHTML = "";
+  scorecardWrap.style.cssText = "display: none;";
+
+  countdownEl.style.display = "";
+  countdownEl.classList.remove("pulse");
+  levelSplash.style.display = "";
+  levelSplash.style.visibility = "";
+  board.style.display = "";
+  board.classList.remove("fade-out");
+  board.style.visibility = "visible";
+  board.innerHTML = "";
+
+  matchesFound = 0;
+  flippedCards = [];
+  lockBoard = true;
+  startBtn.style.display = "none";
+  countdownEl.textContent = "";
+  levelSplash.textContent = "";
+  levelSplash.className = "";
+  stopTimer();
+  renderDots();
+
+  const pairsCount = LEVELS[currentLevel];
+  const uniqueImages = [...new Map(IMAGE_FILES.map(f => [f.toLowerCase(), f])).values()];
+  const selectedImages = shuffle([...uniqueImages]).slice(0, pairsCount);
+  const pairs = shuffle([...selectedImages, ...selectedImages]);
+
+  const totalCards = pairs.length;
+  const columns = totalCards === 6 ? 3 : 4;
+  board.style.gridTemplateColumns = `repeat(${columns}, 160px)`;
+
+  const cardEls = [];
+  pairs.forEach((filename) => {
+    const card = document.createElement("div");
+    card.classList.add("card");
+    card.dataset.image = filename;
+    const inner = document.createElement("div");
+    inner.classList.add("card-inner");
+    const front = document.createElement("div");
+    front.classList.add("card-front");
+    const img = document.createElement("img");
+    img.src = `images/${filename}`;
+    img.alt = filename.replace(/\.[^.]+$/, "");
+    front.appendChild(img);
+    const back = document.createElement("div");
+    back.classList.add("card-back");
+    inner.appendChild(front);
+    inner.appendChild(back);
+    card.appendChild(inner);
+    card.addEventListener("click", onCardClick);
+    board.appendChild(card);
+    cardEls.push(card);
+  });
+
+  status.textContent = `Level ${currentLevel + 1} - Get ready...`;
+  setTimeout(() => {
+    status.textContent = `Level ${currentLevel + 1} - Memorise the cards!`;
+    flipCardsUp(cardEls, () => {
+      runPreviewCountdown(LEVEL_COUNTDOWN[currentLevel], () => {
+        flipCardsDown(cardEls, () => {
+          status.textContent = `Level ${currentLevel + 1} - Find the matching pairs.`;
+          lockBoard = false;
+          startTimer();
+        });
+      });
+    });
+  }, 600);
+}
+
+function onCardClick(e) {
+  const card = e.currentTarget;
+  if (lockBoard) return;
+  if (card.classList.contains("flipped")) return;
+  if (card.classList.contains("matched")) return;
+  playCardFlip();
+  card.classList.add("flipped");
+  flippedCards.push(card);
+  if (flippedCards.length === 2) {
+    moves++;
+    moveCount.textContent = `Moves: ${moves}`;
+    checkForMatch();
+  }
+}
+
+function checkForMatch() {
+  lockBoard = true;
+  const [first, second] = flippedCards;
+  const isMatch = first.dataset.image === second.dataset.image;
+  if (isMatch) {
+    first.classList.add("matched");
+    second.classList.add("matched");
+    playChime();
+    matchesFound++;
+    flippedCards = [];
+    lockBoard = false;
+    if (matchesFound === LEVELS[currentLevel]) {
+      if (currentLevel < LEVELS.length - 1) {
+        stopTimer();
+        status.textContent = "";
+        showLevelSplash(`Level ${currentLevel + 1} Complete!`, () => {
+          currentLevel++;
+          buildBoard();
+        });
+      } else {
+        stopTimer();
+        status.textContent = "";
+        playWinFanfare();
+        launchConfetti();
+        showWinScreen();
+      }
+    }
+  } else {
+    first.classList.add("wrong");
+    second.classList.add("wrong");
+    playBuzz();
+    setTimeout(() => {
+      playCardFlip();
+      first.classList.remove("flipped", "wrong");
+      setTimeout(() => {
+        playCardFlip();
+        second.classList.remove("flipped", "wrong");
+      }, 80);
+      flippedCards = [];
+      lockBoard = false;
+    }, 1000);
+  }
+}
+
+function restartGame() {
+  currentLevel = 0;
+  resetStats();
+  buildBoard();
+}
+
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
