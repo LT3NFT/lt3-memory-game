@@ -387,13 +387,17 @@ async function downloadScorecard() {
   }
   card.style.borderRadius = '0';
   
-  // Get exact dimensions before capture
-  const cardRect = card.getBoundingClientRect();
-  const cardWidth = Math.ceil(cardRect.width);
-  const cardHeight = Math.ceil(cardRect.height);
+  // Wait for layout to settle after removing transform
+  await new Promise(resolve => setTimeout(resolve, 150));
   
-  // Wait a moment for any layout to settle
-  await new Promise(resolve => setTimeout(resolve, 100));
+  // Get exact dimensions after transform removal
+  const cardRect = card.getBoundingClientRect();
+  const cardWidth = Math.floor(cardRect.width);
+  const cardHeight = Math.floor(cardRect.height);
+  
+  // On mobile, account for any potential extra pixels from scaling
+  const actualWidth = isMobile ? 420 : cardWidth; // Scorecard is always 420px actual size
+  const actualHeight = isMobile ? Math.floor(240 + 16 + 16) : cardHeight; // Image height + padding
   
   html2canvas(card, {
     backgroundColor: "#fdf8ee",
@@ -402,8 +406,8 @@ async function downloadScorecard() {
     allowTaint: true,
     logging: false,
     imageTimeout: 0,
-    width: cardWidth,
-    height: cardHeight,
+    width: actualWidth,
+    height: actualHeight,
     x: 0,
     y: 0,
     removeContainer: false,
@@ -415,25 +419,46 @@ async function downloadScorecard() {
         clonedImg.style.height = '240px';
         clonedImg.style.objectFit = 'fill';
       }
+      // On mobile, ensure no extra margins/padding
+      if (isMobile) {
+        const clonedCard = clonedDoc.getElementById('scorecard');
+        if (clonedCard) {
+          clonedCard.style.margin = '0';
+          clonedCard.style.padding = '0';
+        }
+      }
     },
   }).then(canvas => {
     // Crop to exact card dimensions (remove any extra space)
     const scale = 4;
-    const targetWidth = cardWidth * scale;
-    const targetHeight = cardHeight * scale;
+    const targetWidth = actualWidth * scale;
+    const targetHeight = actualHeight * scale;
+    
+    // On mobile, crop a bit tighter to remove cream outline
+    const cropOffset = isMobile ? 2 : 0; // Remove 2px on each side for mobile
     
     // Create a new canvas with exact dimensions
     const croppedCanvas = document.createElement('canvas');
-    croppedCanvas.width = targetWidth;
-    croppedCanvas.height = targetHeight;
+    croppedCanvas.width = targetWidth - (cropOffset * 2 * scale);
+    croppedCanvas.height = targetHeight - (cropOffset * 2 * scale);
     const croppedCtx = croppedCanvas.getContext('2d');
     
     // Fill with background color first
     croppedCtx.fillStyle = "#fdf8ee";
-    croppedCtx.fillRect(0, 0, targetWidth, targetHeight);
+    croppedCtx.fillRect(0, 0, croppedCanvas.width, croppedCanvas.height);
     
-    // Draw the original canvas, cropping to exact dimensions
-    croppedCtx.drawImage(canvas, 0, 0, targetWidth, targetHeight, 0, 0, targetWidth, targetHeight);
+    // Draw the original canvas, cropping to exact dimensions (with offset on mobile)
+    croppedCtx.drawImage(
+      canvas, 
+      cropOffset * scale, 
+      cropOffset * scale, 
+      targetWidth - (cropOffset * 2 * scale), 
+      targetHeight - (cropOffset * 2 * scale),
+      0, 
+      0, 
+      croppedCanvas.width, 
+      croppedCanvas.height
+    );
     
     // Restore original styles
     card.style.borderRadius = originalBorderRadius;
