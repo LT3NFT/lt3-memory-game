@@ -299,7 +299,18 @@ async function showWinScreen() {
       toBase64("favicon.png")
     ]);
 
-    scorecardImg.src = imgBase64;
+    // Load image and ensure it maintains aspect ratio
+    const img = new Image();
+    img.onload = () => {
+      scorecardImg.src = imgBase64;
+      // Ensure image maintains natural aspect ratio
+      scorecardImg.style.width = '180px';
+      scorecardImg.style.height = '240px';
+      scorecardImg.style.objectFit = 'cover';
+      scorecardImg.style.objectPosition = 'center';
+    };
+    img.src = imgBase64;
+    
     scorecardFavicon.src = faviconBase64;
     scorecardTime.textContent = seconds + "s";
     scorecardMessage.textContent = tier.message;
@@ -349,6 +360,16 @@ function downloadScorecard() {
     height: cardHeight,
     x: 0,
     y: 0,
+    onclone: (clonedDoc) => {
+      // Ensure the cloned image maintains aspect ratio
+      const clonedImg = clonedDoc.getElementById('scorecard-img');
+      if (clonedImg) {
+        clonedImg.style.width = '180px';
+        clonedImg.style.height = '240px';
+        clonedImg.style.objectFit = 'cover';
+        clonedImg.style.objectPosition = 'center';
+      }
+    },
   }).then(canvas => {
     // Crop to exact card dimensions (remove any extra space)
     const scale = 4;
