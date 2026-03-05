@@ -325,7 +325,7 @@ async function showWinScreen() {
   }, 650);
 }
 
-function downloadScorecard() {
+async function downloadScorecard() {
   const card = document.getElementById("scorecard");
   
   // On mobile, temporarily remove scale transform for download to capture full size
