@@ -299,19 +299,18 @@ async function showWinScreen() {
       toBase64("favicon.png")
     ]);
 
-    // Load image and ensure it maintains aspect ratio
-    const img = new Image();
-    img.onload = () => {
-      scorecardImg.src = imgBase64;
-      // Ensure image maintains natural aspect ratio
-      scorecardImg.style.width = '180px';
-      scorecardImg.style.height = '240px';
-      scorecardImg.style.objectFit = 'cover';
-      scorecardImg.style.objectPosition = 'center';
-    };
-    img.src = imgBase64;
-    
+    scorecardImg.src = imgBase64;
     scorecardFavicon.src = faviconBase64;
+    
+    // Wait for image to load to ensure proper rendering
+    await new Promise((resolve) => {
+      if (scorecardImg.complete) {
+        resolve();
+      } else {
+        scorecardImg.onload = resolve;
+        scorecardImg.onerror = resolve;
+      }
+    });
     scorecardTime.textContent = seconds + "s";
     scorecardMessage.textContent = tier.message;
     scorecardSub.textContent = tier.sub;
@@ -349,6 +348,9 @@ function downloadScorecard() {
   const cardWidth = Math.ceil(cardRect.width);
   const cardHeight = Math.ceil(cardRect.height);
   
+  // Wait a moment for any layout to settle
+  await new Promise(resolve => setTimeout(resolve, 100));
+  
   html2canvas(card, {
     backgroundColor: "#fdf8ee",
     scale: 4,
@@ -360,14 +362,27 @@ function downloadScorecard() {
     height: cardHeight,
     x: 0,
     y: 0,
+    removeContainer: false,
     onclone: (clonedDoc) => {
-      // Ensure the cloned image maintains aspect ratio
+      // Ensure the cloned image maintains exact dimensions and aspect ratio
       const clonedImg = clonedDoc.getElementById('scorecard-img');
       if (clonedImg) {
+        // Force exact pixel dimensions to prevent compression
         clonedImg.style.width = '180px';
         clonedImg.style.height = '240px';
+        clonedImg.style.maxWidth = '180px';
+        clonedImg.style.maxHeight = '240px';
+        clonedImg.style.minWidth = '180px';
+        clonedImg.style.minHeight = '240px';
         clonedImg.style.objectFit = 'cover';
         clonedImg.style.objectPosition = 'center';
+        clonedImg.style.imageRendering = 'auto';
+        // Ensure natural aspect ratio is preserved
+        if (clonedImg.naturalWidth && clonedImg.naturalHeight) {
+          const naturalAspect = clonedImg.naturalWidth / clonedImg.naturalHeight;
+          const targetAspect = 180 / 240;
+          // Don't force aspect ratio, let object-fit: cover handle it
+        }
       }
     },
   }).then(canvas => {

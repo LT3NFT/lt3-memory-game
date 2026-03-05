@@ -228,7 +228,8 @@ h1 {
   flex-shrink: 0;
   border-right: 3px solid #3d2b00;
   image-rendering: auto;
-  aspect-ratio: 180 / 240;
+  max-width: 180px;
+  max-height: 240px;
   min-width: 180px;
   min-height: 240px;
 }
