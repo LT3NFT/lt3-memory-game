@@ -323,34 +323,58 @@ function downloadScorecard() {
   const computedStyle = window.getComputedStyle(card);
   const hasScaleTransform = computedStyle.transform && computedStyle.transform !== 'none' && computedStyle.transform.includes('scale');
   
-  // Temporarily remove scale transform for download
+  // Store original styles
+  const originalBorderRadius = card.style.borderRadius;
+  const originalTransform = card.style.transform;
+  
+  // Temporarily remove rounded corners and scale transform for clean capture
   if (isMobile && hasScaleTransform) {
     card.style.transform = 'none';
   }
+  card.style.borderRadius = '0';
   
   html2canvas(card, {
     backgroundColor: "#fdf8ee",
-    scale: 2,
+    scale: 3,
     useCORS: true,
     allowTaint: true,
     logging: false,
     imageTimeout: 0,
+    windowWidth: card.offsetWidth,
+    windowHeight: card.offsetHeight,
   }).then(canvas => {
-    // Restore scale transform after capture
+    // Crop to exact card dimensions (remove any white space from rounded corners)
+    const ctx = canvas.getContext('2d');
+    const cardRect = card.getBoundingClientRect();
+    const cardWidth = cardRect.width;
+    const cardHeight = cardRect.height;
+    
+    // Create a new canvas with exact dimensions
+    const croppedCanvas = document.createElement('canvas');
+    croppedCanvas.width = cardWidth * 3; // Match the scale
+    croppedCanvas.height = cardHeight * 3;
+    const croppedCtx = croppedCanvas.getContext('2d');
+    
+    // Draw the original canvas to the cropped one
+    croppedCtx.drawImage(canvas, 0, 0);
+    
+    // Restore original styles
+    card.style.borderRadius = originalBorderRadius;
     if (isMobile && hasScaleTransform) {
-      card.style.transform = '';
+      card.style.transform = originalTransform;
     }
     
     const link = document.createElement("a");
     link.download = "LT3ScoreCard.png";
-    link.href = canvas.toDataURL("image/png");
+    link.href = croppedCanvas.toDataURL("image/png");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   }).catch(err => {
-    // Restore scale transform on error
+    // Restore original styles on error
+    card.style.borderRadius = originalBorderRadius;
     if (isMobile && hasScaleTransform) {
-      card.style.transform = '';
+      card.style.transform = originalTransform;
     }
     console.error("Download failed:", err);
     alert("Download failed. Try right-clicking the scorecard and saving as image.");

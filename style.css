@@ -224,8 +224,11 @@ h1 {
   width: 180px;
   height: 240px;
   object-fit: cover;
+  object-position: center;
   flex-shrink: 0;
   border-right: 3px solid #3d2b00;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
 }
 
 #scorecard-info {
@@ -279,6 +282,9 @@ h1 {
   width: 22px;
   height: 22px;
   object-fit: contain;
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  image-rendering: pixelated;
 }
 
 #scorecard-game-title {
