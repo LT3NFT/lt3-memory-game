@@ -125,7 +125,35 @@ function dismissIntro() {
   if (introDone) return;
   introDone = true;
   if (introTimeout) clearTimeout(introTimeout);
+  
+  // Resume audio context (required for autoplay)
+  getAudioCtx();
+  
+  // Start music - user has interacted by clicking
   startBackgroundMusic();
+  
+  // Ensure music plays after a short delay to allow audio context to be ready
+  setTimeout(() => {
+    if (backgroundMusic && musicVolume > 0 && !isMusicPaused) {
+      const playPromise = backgroundMusic.play();
+      if (playPromise !== undefined) {
+        playPromise.then(() => {
+          updatePlayPauseButton();
+        }).catch(e => {
+          console.log("Play failed, will retry:", e);
+          // Retry once more after a brief delay
+          setTimeout(() => {
+            if (backgroundMusic && backgroundMusic.paused && musicVolume > 0) {
+              backgroundMusic.play().then(() => {
+                updatePlayPauseButton();
+              }).catch(err => console.log("Retry failed:", err));
+            }
+          }, 200);
+        });
+      }
+    }
+  }, 100);
+  
   introScreen.style.transition = "opacity 0.4s ease";
   introScreen.style.opacity = "0";
   introScreen.style.pointerEvents = "none";
@@ -135,6 +163,11 @@ function dismissIntro() {
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         gameEl.classList.add("visible");
+        // Show audio controls at the exact same time as game container
+        const audioControls = document.getElementById("audio-controls");
+        if (audioControls) {
+          audioControls.classList.add("visible");
+        }
         buildBoard();
       });
     });
@@ -155,6 +188,14 @@ function startGame() {
   getAudioCtx();
   startBackgroundMusic();
   startBtn.style.display = "none";
+  
+  // Show audio controls - they should already be visible if intro was dismissed
+  // but ensure they're visible when game starts directly
+  const audioControls = document.getElementById("audio-controls");
+  if (audioControls && !audioControls.classList.contains("visible")) {
+    audioControls.classList.add("visible");
+  }
+  
   buildBoard();
 }
 
@@ -276,6 +317,17 @@ async function showWinScreen() {
 
 function downloadScorecard() {
   const card = document.getElementById("scorecard");
+  
+  // On mobile, temporarily remove scale transform for download to capture full size
+  const isMobile = window.innerWidth <= 768;
+  const computedStyle = window.getComputedStyle(card);
+  const hasScaleTransform = computedStyle.transform && computedStyle.transform !== 'none' && computedStyle.transform.includes('scale');
+  
+  // Temporarily remove scale transform for download
+  if (isMobile && hasScaleTransform) {
+    card.style.transform = 'none';
+  }
+  
   html2canvas(card, {
     backgroundColor: "#fdf8ee",
     scale: 2,
@@ -284,6 +336,11 @@ function downloadScorecard() {
     logging: false,
     imageTimeout: 0,
   }).then(canvas => {
+    // Restore scale transform after capture
+    if (isMobile && hasScaleTransform) {
+      card.style.transform = '';
+    }
+    
     const link = document.createElement("a");
     link.download = "LT3ScoreCard.png";
     link.href = canvas.toDataURL("image/png");
@@ -291,6 +348,10 @@ function downloadScorecard() {
     link.click();
     document.body.removeChild(link);
   }).catch(err => {
+    // Restore scale transform on error
+    if (isMobile && hasScaleTransform) {
+      card.style.transform = '';
+    }
     console.error("Download failed:", err);
     alert("Download failed. Try right-clicking the scorecard and saving as image.");
   });
@@ -491,13 +552,39 @@ function buildBoard() {
   const pairs = shuffle([...selectedImages, ...selectedImages]);
 
   const totalCards = pairs.length;
-  const columns = totalCards === 6 ? 3 : 4;
-  board.style.gridTemplateColumns = `repeat(${columns}, 160px)`;
+  let columns, cardSize;
+  
+  if (window.innerWidth <= 768) {
+    // Mobile: smaller cards, adjust columns for better layout
+    cardSize = window.innerWidth <= 480 ? 80 : 100;
+    if (totalCards === 6) {
+      columns = 3; // 3x2 grid
+    } else if (totalCards === 8) {
+      columns = 4; // 4x2 grid
+    } else if (totalCards === 12) {
+      columns = 3; // 3x4 grid
+    } else {
+      columns = 4; // 4x4 grid
+    }
+  } else {
+    // Desktop: keep original
+    columns = totalCards === 6 ? 3 : 4;
+    cardSize = 160;
+  }
+  
+  board.style.gridTemplateColumns = `repeat(${columns}, ${cardSize}px)`;
 
   const cardEls = [];
   pairs.forEach((filename) => {
     const card = document.createElement("div");
     card.classList.add("card");
+    if (window.innerWidth <= 768) {
+      card.style.width = cardSize + "px";
+      card.style.height = cardSize + "px";
+    } else {
+      card.style.width = "";
+      card.style.height = "";
+    }
     card.dataset.image = filename;
     const inner = document.createElement("div");
     inner.classList.add("card-inner");
@@ -538,6 +625,7 @@ function onCardClick(e) {
   if (card.classList.contains("flipped")) return;
   if (card.classList.contains("matched")) return;
   playCardFlip();
+  card.style.transform = "none";
   card.classList.add("flipped");
   flippedCards.push(card);
   if (flippedCards.length === 2) {
@@ -580,9 +668,11 @@ function checkForMatch() {
     playBuzz();
     setTimeout(() => {
       playCardFlip();
+      first.style.transform = "none";
       first.classList.remove("flipped", "wrong");
       setTimeout(() => {
         playCardFlip();
+        second.style.transform = "none";
         second.classList.remove("flipped", "wrong");
       }, 80);
       flippedCards = [];
@@ -682,12 +772,29 @@ function loadAndPlayMusic() {
     skipSong(1);
   });
   
+  backgroundMusic.addEventListener('canplaythrough', () => {
+    // Try to play when audio is ready
+    if (musicVolume > 0 && !isMusicPaused) {
+      const playPromise = backgroundMusic.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(e => {
+          console.log("Autoplay prevented:", e);
+        });
+      }
+      updatePlayPauseButton();
+    }
+  });
+  
   updatePlayPauseButton();
   
+  // Try to play immediately (will work if user has interacted)
   if (musicVolume > 0 && !isMusicPaused) {
-    backgroundMusic.play().catch(e => {
-      console.log("Autoplay prevented, will play on user interaction");
-    });
+    const playPromise = backgroundMusic.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(e => {
+        console.log("Autoplay prevented, will play on user interaction");
+      });
+    }
   }
   updatePlayPauseButton();
 }
@@ -742,17 +849,25 @@ function skipSong(direction) {
   }
 }
 
-// Start music on first user interaction
-document.addEventListener('click', function startMusicOnInteraction() {
-  if (!musicStarted) {
-    startBackgroundMusic();
-  }
-  document.removeEventListener('click', startMusicOnInteraction);
-}, { once: true });
+// Start music on first user interaction (desktop)
+// On mobile, music will start automatically when intro dismisses
+const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+if (!isMobile) {
+  document.addEventListener('click', function startMusicOnInteraction() {
+    if (!musicStarted) {
+      startBackgroundMusic();
+    }
+    document.removeEventListener('click', startMusicOnInteraction);
+  }, { once: true });
+}
 
-document.addEventListener('touchstart', function startMusicOnTouch() {
-  if (!musicStarted) {
-    startBackgroundMusic();
-  }
-  document.removeEventListener('touchstart', startMusicOnTouch);
-}, { once: true });
+// On mobile, start music when intro screen is shown (will play after user interaction or auto-dismiss)
+if (isMobile) {
+  // Try to start music immediately on mobile - will work if autoplay is allowed
+  // Otherwise it will start when dismissIntro() is called
+  setTimeout(() => {
+    if (!musicStarted) {
+      startBackgroundMusic();
+    }
+  }, 100);
+}

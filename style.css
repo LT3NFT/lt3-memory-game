@@ -73,7 +73,7 @@ body {
   font-family: 'TheClouds', Arial, sans-serif;
   font-size: 4.5rem;
   color: #fdf8ee;
-  -webkit-text-stroke: 3px #3d2b00;
+  -webkit-text-stroke: 2px #3d2b00;
   line-height: 1.1;
   max-width: 420px;
   text-align: left;
@@ -113,7 +113,7 @@ h1 {
   margin-bottom: 6px;
   letter-spacing: 2px;
   color: #fdf8ee;
-  -webkit-text-stroke: 1px #3d2b00;
+  -webkit-text-stroke: 0.8px #3d2b00;
 }
 
 #status {
@@ -166,7 +166,7 @@ h1 {
   line-height: 88px;
   margin-top: -8px;
   margin-bottom: 8px;
-  -webkit-text-stroke: 3px #3d2b00;
+  -webkit-text-stroke: 1.5px #3d2b00;
 }
 
 #countdown.pulse {
@@ -177,7 +177,7 @@ h1 {
   font-family: 'TheClouds', Arial, sans-serif;
   font-size: 3.5rem;
   color: #fdf8ee;
-  -webkit-text-stroke: 3px #3d2b00;
+  -webkit-text-stroke: 2px #3d2b00;
   letter-spacing: 2px;
   height: 60px;
   line-height: 60px;
@@ -341,6 +341,12 @@ h1 {
   transform: translateY(-6px) scale(1.04);
 }
 
+.card.flipped,
+.card.matched,
+.card.wrong {
+  transform: none !important;
+}
+
 .card-inner {
   width: 100%;
   height: 100%;
@@ -427,6 +433,12 @@ button:hover {
   align-items: center;
   gap: 12px;
   z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+}
+
+#audio-controls.visible {
+  opacity: 1;
 }
 
 #radio-controls {
@@ -658,4 +670,244 @@ button:hover {
 @keyframes confettiFall {
   0%   { opacity: 1; transform: translateY(0) rotate(0deg); }
   100% { opacity: 0; transform: translateY(110vh) rotate(720deg); }
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+@media (max-width: 768px) {
+  /* Intro Screen */
+  #intro-screen {
+    padding: 20px;
+  }
+
+  #intro-top {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  #intro-char {
+    height: 150px;
+    width: 150px;
+  }
+
+  #intro-title {
+    font-size: 2.5rem;
+    text-align: center;
+    max-width: 100%;
+    -webkit-text-stroke: 2px #3d2b00;
+  }
+
+  #intro-click-hint {
+    font-size: 2rem;
+    margin-left: 0;
+  }
+
+  /* Game Title and Text */
+  h1 {
+    font-size: 2.2rem;
+    margin-top: 0;
+  }
+
+  #status {
+    font-size: 2rem;
+  }
+
+  #stats {
+    font-size: 1.8rem;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  #countdown {
+    font-size: 2.5rem;
+    height: 60px;
+    line-height: 60px;
+  }
+
+  #level-splash {
+    font-size: 2.2rem;
+    height: 50px;
+    line-height: 50px;
+    -webkit-text-stroke: 2px #3d2b00;
+  }
+
+  /* Cards - Scale down for mobile */
+  .card {
+    width: 100px;
+    height: 100px;
+  }
+
+  #board {
+    gap: 10px;
+    margin-bottom: 120px;
+  }
+
+  /* Audio Controls - Reposition for mobile ONLY - Fixed at very bottom of viewport */
+  /* Now outside #game container, so truly fixed to viewport */
+  #audio-controls {
+    position: fixed !important;
+    top: auto !important;
+    bottom: 5px !important;
+    right: 15px !important;
+    left: auto !important;
+    width: auto !important;
+    height: auto !important;
+    gap: 10px;
+    align-items: flex-end;
+    transform: none !important;
+    z-index: 10000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    transition: opacity 0.6s ease !important;
+    animation: none !important;
+  }
+  
+  #audio-controls.visible {
+    opacity: 1 !important;
+  }
+
+  #radio-controls {
+    gap: 6px;
+  }
+
+  #radio-icon {
+    width: 32px;
+    height: 32px;
+  }
+
+  #volume-slider {
+    width: 90px;
+  }
+
+  #skip-prev,
+  #skip-next {
+    font-size: 0.65rem;
+  }
+
+  #play-pause-btn {
+    font-size: 0.95rem;
+    min-width: 0.95rem;
+    min-height: 0.95rem;
+  }
+
+  #play-pause-btn.play-icon {
+    font-size: 0.8rem;
+  }
+
+  #skip-controls {
+    margin-left: 38px;
+    margin-top: -10px;
+    gap: 2px;
+  }
+
+  #sfx-controls {
+    gap: 6px;
+  }
+
+  #sfx-label {
+    font-size: 1.5rem;
+  }
+
+  #sfx-toggle {
+    width: 42px;
+    height: 22px;
+  }
+
+  #sfx-toggle-slider {
+    width: 16px;
+    height: 16px;
+    top: 1px;
+    left: 1px;
+  }
+
+  #sfx-toggle.sfx-on #sfx-toggle-slider {
+    transform: translateX(22px);
+  }
+
+  /* Scorecard */
+  /* Scorecard - Keep desktop layout on mobile for consistent downloads */
+  /* Scale down visually but keep actual size for downloads */
+  #scorecard {
+    width: 420px;
+    max-width: 90vw;
+    flex-direction: row;
+    transform: scale(0.85);
+    transform-origin: center;
+  }
+
+  #scorecard-img {
+    width: 180px;
+    height: 240px;
+    border-right: 3px solid #3d2b00;
+    border-bottom: none;
+  }
+
+  #scorecard-info {
+    padding: 16px 16px;
+    align-items: flex-end;
+    text-align: right;
+    justify-content: space-between;
+  }
+
+  #scorecard-top {
+    align-items: flex-end;
+    text-align: right;
+  }
+
+  #scorecard-time {
+    font-size: 3.4rem;
+    text-align: right;
+    width: auto;
+  }
+
+  #scorecard-message {
+    font-size: 1.3rem;
+  }
+
+  #scorecard-sub {
+    font-size: 1.2rem;
+  }
+
+  /* Buttons */
+  button {
+    font-size: 1.2rem;
+    padding: 6px 20px;
+  }
+
+  #download-btn {
+    font-size: 1.2rem;
+    padding: 6px 20px;
+  }
+}
+
+/* Extra small phones */
+@media (max-width: 480px) {
+  h1 {
+    font-size: 1.8rem;
+  }
+
+  #status {
+    font-size: 1.6rem;
+  }
+
+  #stats {
+    font-size: 1.4rem;
+    gap: 12px;
+  }
+
+  .card {
+    width: 80px;
+    height: 80px;
+  }
+
+  #board {
+    gap: 8px;
+  }
+
+  #countdown {
+    font-size: 2rem;
+  }
+
+  #level-splash {
+    font-size: 1.8rem;
+  }
 }

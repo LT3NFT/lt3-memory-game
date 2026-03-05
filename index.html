@@ -28,23 +28,6 @@
     <!-- Game -->
     <div id="game" class="hidden">
       <h1>LT3 Memory Game!</h1>
-      <div id="audio-controls">
-        <div id="radio-controls">
-          <img id="radio-icon" src="radioon.png" alt="Radio" onclick="toggleRadioMute()" />
-          <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.25" oninput="updateMusicVolume()" />
-        </div>
-        <div id="skip-controls">
-          <button id="skip-prev" onclick="skipSong(-1)">◀</button>
-          <button id="play-pause-btn" onclick="togglePlayPause()">⏸</button>
-          <button id="skip-next" onclick="skipSong(1)">▶</button>
-        </div>
-        <div id="sfx-controls">
-          <span id="sfx-label">SFX:</span>
-          <button id="sfx-toggle" onclick="toggleSoundEffects()" class="sfx-on">
-            <span id="sfx-toggle-slider"></span>
-          </button>
-        </div>
-      </div>
       <p id="status">Ready to play?</p>
       <div id="level-dots"></div>
       <div id="stats">
@@ -79,6 +62,25 @@
       <div id="win-title"></div>
       <div id="win-stats"></div>
       <div id="board"></div>
+    </div>
+
+    <!-- Audio Controls - Outside game container to prevent transform issues -->
+    <div id="audio-controls">
+      <div id="radio-controls">
+        <img id="radio-icon" src="radioon.png" alt="Radio" onclick="toggleRadioMute()" />
+        <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.25" oninput="updateMusicVolume()" />
+      </div>
+      <div id="skip-controls">
+        <button id="skip-prev" onclick="skipSong(-1)">◀</button>
+        <button id="play-pause-btn" onclick="togglePlayPause()">⏸</button>
+        <button id="skip-next" onclick="skipSong(1)">▶</button>
+      </div>
+      <div id="sfx-controls">
+        <span id="sfx-label">SFX:</span>
+        <button id="sfx-toggle" onclick="toggleSoundEffects()" class="sfx-on">
+          <span id="sfx-toggle-slider"></span>
+        </button>
+      </div>
     </div>
 
     <script src="script.js"></script>
