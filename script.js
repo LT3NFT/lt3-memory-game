@@ -624,6 +624,24 @@ function onCardClick(e) {
   if (lockBoard) return;
   if (card.classList.contains("flipped")) return;
   if (card.classList.contains("matched")) return;
+  
+  // Try to start music on first card click if it hasn't started yet
+  // (handles case where intro auto-dismissed and autoplay was blocked)
+  if (!musicStarted) {
+    getAudioCtx();
+    startBackgroundMusic();
+    setTimeout(() => {
+      if (backgroundMusic && backgroundMusic.paused && musicVolume > 0 && !isMusicPaused) {
+        backgroundMusic.play().catch(e => console.log("Play failed:", e));
+        updatePlayPauseButton();
+      }
+    }, 50);
+  } else if (backgroundMusic && backgroundMusic.paused && musicVolume > 0 && !isMusicPaused) {
+    // Music was started but paused (autoplay blocked), try to play now
+    backgroundMusic.play().catch(e => console.log("Play failed:", e));
+    updatePlayPauseButton();
+  }
+  
   playCardFlip();
   card.style.transform = "none";
   card.classList.add("flipped");
