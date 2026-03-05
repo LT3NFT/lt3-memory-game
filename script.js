@@ -333,12 +333,24 @@ async function showWinScreen() {
       cropY = (img.naturalHeight - cropHeight) / 2;
     }
 
-    // Create cropped canvas
+    // Create cropped canvas at high resolution (4x for sharp export)
+    const scale = 4;
     const cropCanvas = document.createElement('canvas');
-    cropCanvas.width = 180;
-    cropCanvas.height = 240;
+    cropCanvas.width = 180 * scale;
+    cropCanvas.height = 240 * scale;
     const cropCtx = cropCanvas.getContext('2d');
-    cropCtx.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, 180, 240);
+    
+    // Use high-quality image rendering
+    cropCtx.imageSmoothingEnabled = true;
+    cropCtx.imageSmoothingQuality = 'high';
+    
+    // Draw the cropped image at high resolution
+    cropCtx.drawImage(
+      img, 
+      cropX, cropY, cropWidth, cropHeight, 
+      0, 0, 
+      180 * scale, 240 * scale
+    );
 
     // Use the pre-cropped image
     scorecardImg.src = cropCanvas.toDataURL("image/png");
