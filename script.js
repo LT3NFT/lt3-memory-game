@@ -299,18 +299,50 @@ async function showWinScreen() {
       toBase64("favicon.png")
     ]);
 
-    scorecardImg.src = imgBase64;
-    scorecardFavicon.src = faviconBase64;
-    
-    // Wait for image to load to ensure proper rendering
+    // Pre-crop the image to maintain aspect ratio (180:240 = 3:4)
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = imgBase64;
+
     await new Promise((resolve) => {
-      if (scorecardImg.complete) {
+      if (img.complete) {
         resolve();
       } else {
-        scorecardImg.onload = resolve;
-        scorecardImg.onerror = resolve;
+        img.onload = resolve;
+        img.onerror = resolve;
       }
     });
+
+    // Calculate crop to maintain 3:4 aspect ratio
+    const targetAspect = 180 / 240; // 0.75
+    const naturalAspect = img.naturalWidth / img.naturalHeight;
+
+    let cropWidth, cropHeight, cropX, cropY;
+
+    if (naturalAspect > targetAspect) {
+      // Image is wider - crop width
+      cropHeight = img.naturalHeight;
+      cropWidth = cropHeight * targetAspect;
+      cropX = (img.naturalWidth - cropWidth) / 2;
+      cropY = 0;
+    } else {
+      // Image is taller - crop height
+      cropWidth = img.naturalWidth;
+      cropHeight = cropWidth / targetAspect;
+      cropX = 0;
+      cropY = (img.naturalHeight - cropHeight) / 2;
+    }
+
+    // Create cropped canvas
+    const cropCanvas = document.createElement('canvas');
+    cropCanvas.width = 180;
+    cropCanvas.height = 240;
+    const cropCtx = cropCanvas.getContext('2d');
+    cropCtx.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, 180, 240);
+
+    // Use the pre-cropped image
+    scorecardImg.src = cropCanvas.toDataURL("image/png");
+    scorecardFavicon.src = faviconBase64;
     scorecardTime.textContent = seconds + "s";
     scorecardMessage.textContent = tier.message;
     scorecardSub.textContent = tier.sub;
@@ -364,25 +396,12 @@ async function downloadScorecard() {
     y: 0,
     removeContainer: false,
     onclone: (clonedDoc) => {
-      // Ensure the cloned image maintains exact dimensions and aspect ratio
+      // Image is already pre-cropped, just ensure dimensions
       const clonedImg = clonedDoc.getElementById('scorecard-img');
       if (clonedImg) {
-        // Force exact pixel dimensions to prevent compression
         clonedImg.style.width = '180px';
         clonedImg.style.height = '240px';
-        clonedImg.style.maxWidth = '180px';
-        clonedImg.style.maxHeight = '240px';
-        clonedImg.style.minWidth = '180px';
-        clonedImg.style.minHeight = '240px';
-        clonedImg.style.objectFit = 'cover';
-        clonedImg.style.objectPosition = 'center';
-        clonedImg.style.imageRendering = 'auto';
-        // Ensure natural aspect ratio is preserved
-        if (clonedImg.naturalWidth && clonedImg.naturalHeight) {
-          const naturalAspect = clonedImg.naturalWidth / clonedImg.naturalHeight;
-          const targetAspect = 180 / 240;
-          // Don't force aspect ratio, let object-fit: cover handle it
-        }
+        clonedImg.style.objectFit = 'fill';
       }
     },
   }).then(canvas => {
