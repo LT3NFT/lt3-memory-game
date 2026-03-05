@@ -625,21 +625,35 @@ function onCardClick(e) {
   if (card.classList.contains("flipped")) return;
   if (card.classList.contains("matched")) return;
   
-  // Try to start music on first card click if it hasn't started yet
+  // Try to start/play music on first card click
   // (handles case where intro auto-dismissed and autoplay was blocked)
   if (!musicStarted) {
+    // Music hasn't been started at all
     getAudioCtx();
     startBackgroundMusic();
     setTimeout(() => {
       if (backgroundMusic && backgroundMusic.paused && musicVolume > 0 && !isMusicPaused) {
-        backgroundMusic.play().catch(e => console.log("Play failed:", e));
-        updatePlayPauseButton();
+        backgroundMusic.play().then(() => {
+          updatePlayPauseButton();
+        }).catch(e => console.log("Play failed:", e));
       }
     }, 50);
   } else if (backgroundMusic && backgroundMusic.paused && musicVolume > 0 && !isMusicPaused) {
-    // Music was started but paused (autoplay blocked), try to play now
-    backgroundMusic.play().catch(e => console.log("Play failed:", e));
-    updatePlayPauseButton();
+    // Music was started but is paused (autoplay was blocked), try to play now with user interaction
+    getAudioCtx(); // Ensure audio context is resumed
+    backgroundMusic.play().then(() => {
+      updatePlayPauseButton();
+    }).catch(e => {
+      console.log("Play failed on card click:", e);
+      // If it still fails, try once more after a brief delay
+      setTimeout(() => {
+        if (backgroundMusic && backgroundMusic.paused) {
+          backgroundMusic.play().then(() => {
+            updatePlayPauseButton();
+          }).catch(err => console.log("Retry failed:", err));
+        }
+      }, 100);
+    });
   }
   
   playCardFlip();
