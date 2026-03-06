@@ -541,10 +541,47 @@ async function downloadScorecard() {
       return;
     }
     
-    // Desktop: direct frame export (clean rectangle, no stretch, no dead space)
+    // Desktop: trim any transparent padding so export bounds are exactly the brown frame
+    const ctx = canvas.getContext("2d");
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    let minX = canvas.width;
+    let minY = canvas.height;
+    let maxX = -1;
+    let maxY = -1;
+
+    for (let y = 0; y < canvas.height; y++) {
+      for (let x = 0; x < canvas.width; x++) {
+        const alpha = data[(y * canvas.width + x) * 4 + 3];
+        if (alpha > 0) {
+          if (x < minX) minX = x;
+          if (y < minY) minY = y;
+          if (x > maxX) maxX = x;
+          if (y > maxY) maxY = y;
+        }
+      }
+    }
+
+    const outputCanvas = document.createElement("canvas");
+    const outputCtx = outputCanvas.getContext("2d");
+    outputCtx.imageSmoothingEnabled = true;
+    outputCtx.imageSmoothingQuality = "high";
+
+    if (maxX >= minX && maxY >= minY) {
+      const width = maxX - minX + 1;
+      const height = maxY - minY + 1;
+      outputCanvas.width = width;
+      outputCanvas.height = height;
+      outputCtx.drawImage(canvas, minX, minY, width, height, 0, 0, width, height);
+    } else {
+      outputCanvas.width = canvas.width;
+      outputCanvas.height = canvas.height;
+      outputCtx.drawImage(canvas, 0, 0);
+    }
+
     const link = document.createElement("a");
     link.download = "LT3ScoreCard.png";
-    link.href = canvas.toDataURL("image/png", 1.0);
+    link.href = outputCanvas.toDataURL("image/png", 1.0);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
