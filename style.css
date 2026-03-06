@@ -800,28 +800,34 @@ button:hover {
   .card.matched .card-front,
   .card.wrong .card-front {
     overflow: hidden !important;
-    background-color: #fdf8ee !important;
+    background-color: transparent !important;
     border-radius: 8px !important;
     position: absolute !important;
     top: 0 !important;
     left: 0 !important;
     right: 0 !important;
     bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
     display: block !important;
+    align-items: unset !important;
+    justify-content: unset !important;
   }
 
   .card.flipped .card-front img,
   .card.matched .card-front img,
   .card.wrong .card-front img {
     position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    min-width: 100% !important;
-    min-height: 100% !important;
-    max-width: 100% !important;
-    max-height: 100% !important;
+    top: -1px !important;
+    left: -1px !important;
+    right: -1px !important;
+    bottom: -1px !important;
+    width: calc(100% + 2px) !important;
+    height: calc(100% + 2px) !important;
+    min-width: calc(100% + 2px) !important;
+    min-height: calc(100% + 2px) !important;
+    max-width: none !important;
+    max-height: none !important;
     object-fit: cover !important;
     object-position: center !important;
     border-radius: 8px !important;
@@ -829,6 +835,7 @@ button:hover {
     flex-shrink: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
+    border: none !important;
   }
 
   .card.matched .card-inner {
