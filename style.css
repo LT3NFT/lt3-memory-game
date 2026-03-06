@@ -748,6 +748,7 @@ button:hover {
   h1 {
     font-size: 2.2rem;
     margin-top: 0;
+    -webkit-text-stroke: 1.2px #3d2b00 !important;
   }
 
   #status {
