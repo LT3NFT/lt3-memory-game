@@ -784,15 +784,21 @@ button:hover {
     transform: none !important;
   }
 
-  /* Ensure matched cards fill properly on mobile */
+  /* Ensure ALL flipped cards fill properly on mobile (flipped, matched, wrong) */
+  .card.flipped .card-back,
+  .card.flipped .card-front,
   .card.matched .card-back,
-  .card.matched .card-front {
+  .card.matched .card-front,
+  .card.wrong .card-back,
+  .card.wrong .card-front {
     padding: 0 !important;
     margin: 0 !important;
     box-sizing: border-box !important;
   }
 
-  .card.matched .card-front {
+  .card.flipped .card-front,
+  .card.matched .card-front,
+  .card.wrong .card-front {
     overflow: hidden !important;
     background-color: #fdf8ee !important;
     border-radius: 8px !important;
@@ -801,9 +807,12 @@ button:hover {
     left: 0 !important;
     right: 0 !important;
     bottom: 0 !important;
+    display: block !important;
   }
 
-  .card.matched .card-front img {
+  .card.flipped .card-front img,
+  .card.matched .card-front img,
+  .card.wrong .card-front img {
     position: absolute !important;
     top: 0 !important;
     left: 0 !important;
@@ -824,44 +833,6 @@ button:hover {
 
   .card.matched .card-inner {
     transform: rotateY(180deg) !important;
-  }
-
-  /* Ensure wrong cards fill properly on mobile */
-  .card.wrong .card-back,
-  .card.wrong .card-front {
-    padding: 0 !important;
-    margin: 0 !important;
-    box-sizing: border-box !important;
-  }
-
-  .card.wrong .card-front {
-    overflow: hidden !important;
-    background-color: #fdf8ee !important;
-    border-radius: 8px !important;
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    bottom: 0 !important;
-  }
-
-  .card.wrong .card-front img {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    min-width: 100% !important;
-    min-height: 100% !important;
-    max-width: 100% !important;
-    max-height: 100% !important;
-    object-fit: cover !important;
-    object-position: center !important;
-    border-radius: 8px !important;
-    display: block !important;
-    flex-shrink: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
   }
 
   #board {
