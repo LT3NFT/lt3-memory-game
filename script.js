@@ -532,22 +532,57 @@ async function downloadScorecard() {
       return;
     }
     
-    // Desktop: use original cropping logic
+    // Desktop: crop to exact card dimensions (same as mobile)
     const targetWidth = actualWidth * scale;
     const targetHeight = actualHeight * scale;
     
-    // Create a new canvas with exact dimensions
+    // Find the actual card content bounds by scanning for non-transparent pixels
+    const ctx = canvas.getContext('2d');
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    
+    // Find bounding box of content (non-transparent pixels)
+    let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
+    let foundContent = false;
+    
+    for (let y = 0; y < canvas.height; y++) {
+      for (let x = 0; x < canvas.width; x++) {
+        const idx = (y * canvas.width + x) * 4;
+        const alpha = data[idx + 3];
+        if (alpha > 0) {
+          foundContent = true;
+          minX = Math.min(minX, x);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, x);
+          maxY = Math.max(maxY, y);
+        }
+      }
+    }
+    
+    // Use found bounds or fallback to expected dimensions
+    const contentWidth = foundContent ? (maxX - minX + 1) : targetWidth;
+    const contentHeight = foundContent ? (maxY - minY + 1) : targetHeight;
+    const offsetX = foundContent ? minX : 0;
+    const offsetY = foundContent ? minY : 0;
+    
+    // Create cropped canvas with exact card dimensions
     const croppedCanvas = document.createElement('canvas');
     croppedCanvas.width = targetWidth;
     croppedCanvas.height = targetHeight;
     const croppedCtx = croppedCanvas.getContext('2d');
     
-    // Fill with background color first
-    croppedCtx.fillStyle = "#fdf8ee";
-    croppedCtx.fillRect(0, 0, targetWidth, targetHeight);
-    
-    // Draw the original canvas, cropping to exact dimensions
-    croppedCtx.drawImage(canvas, 0, 0, targetWidth, targetHeight, 0, 0, targetWidth, targetHeight);
+    // Draw the card content, scaling to exact dimensions
+    croppedCtx.drawImage(
+      canvas,
+      offsetX,
+      offsetY,
+      contentWidth,
+      contentHeight,
+      0,
+      0,
+      targetWidth,
+      targetHeight
+    );
     
     // Restore original styles (desktop only, mobile already restored)
     card.style.borderRadius = originalBorderRadius;
