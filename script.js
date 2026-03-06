@@ -396,10 +396,9 @@ async function downloadScorecard() {
   const cardWidth = Math.floor(cardRect.width);
   const cardHeight = Math.floor(cardRect.height);
   
-  // Desktop: use actual card dimensions (420px width, ~278px height including border)
-  // Mobile: use exact card dimensions (420px width, 278px height)
-  const actualWidth = isMobile ? 420 : 420; // Desktop card is 420px wide
-  const actualHeight = isMobile ? 278 : cardHeight; // Desktop height varies, mobile is fixed
+  // Both desktop and mobile use same dimensions: 420px width, 278px height
+  const actualWidth = 420;
+  const actualHeight = 278; // 240px image + 16px top padding + 16px bottom padding + 3px top border + 3px bottom border
   
   html2canvas(card, {
     backgroundColor: null, // No background - we want only the card
@@ -426,7 +425,7 @@ async function downloadScorecard() {
         clonedImg.style.objectFit = 'fill';
         clonedImg.style.imageRendering = 'auto';
       }
-      // Ensure scorecard has proper styling
+      // Ensure scorecard has proper styling (both desktop and mobile)
       const clonedCard = clonedDoc.getElementById('scorecard');
       if (clonedCard) {
         clonedCard.style.border = '3px solid #3d2b00';
@@ -436,7 +435,7 @@ async function downloadScorecard() {
         clonedCard.style.padding = '0';
         clonedCard.style.width = actualWidth + 'px';
       }
-      // On mobile, ensure no extra margins/padding/positioning
+      // Ensure no extra margins/padding/positioning (both desktop and mobile)
       if (isMobile) {
         const clonedCard = clonedDoc.getElementById('scorecard');
         if (clonedCard) {
