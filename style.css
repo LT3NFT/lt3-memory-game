@@ -771,6 +771,36 @@ button:hover {
     transform: none !important;
   }
 
+  /* Ensure matched cards fill properly on mobile */
+  .card.matched .card-back,
+  .card.matched .card-front {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .card.matched .card-front img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    border-radius: 5px !important;
+  }
+
+  /* Ensure wrong cards fill properly on mobile */
+  .card.wrong .card-back,
+  .card.wrong .card-front {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .card.wrong .card-front img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    object-position: center !important;
+    border-radius: 5px !important;
+  }
+
   #board {
     gap: 10px;
     margin-bottom: 120px;
