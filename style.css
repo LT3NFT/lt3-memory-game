@@ -376,6 +376,7 @@ h1 {
   transform: rotateY(180deg);
   overflow: hidden;
   border-radius: 8px;
+  background-color: #fdf8ee;
 }
 
 .card-front img {

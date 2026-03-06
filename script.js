@@ -416,7 +416,7 @@ async function downloadScorecard() {
     scrollY: 0,
     windowWidth: actualWidth,
     windowHeight: actualHeight,
-    removeContainer: false,
+    removeContainer: true, // Remove container to avoid extra space
     onclone: (clonedDoc) => {
       // Image is already pre-cropped, just ensure dimensions
       const clonedImg = clonedDoc.getElementById('scorecard-img');
@@ -431,16 +431,28 @@ async function downloadScorecard() {
         if (clonedCard) {
           clonedCard.style.margin = '0';
           clonedCard.style.padding = '0';
-          clonedCard.style.position = 'static';
+          clonedCard.style.position = 'absolute';
           clonedCard.style.left = '0';
           clonedCard.style.top = '0';
           clonedCard.style.transform = 'none';
+          clonedCard.style.boxShadow = 'none'; // Remove shadow for cleaner export
         }
         // Also ensure parent has no padding/margin
         const clonedWrap = clonedDoc.getElementById('scorecard-wrap');
         if (clonedWrap) {
           clonedWrap.style.margin = '0';
           clonedWrap.style.padding = '0';
+          clonedWrap.style.position = 'relative';
+          clonedWrap.style.width = actualWidth + 'px';
+          clonedWrap.style.height = actualHeight + 'px';
+          clonedWrap.style.overflow = 'hidden';
+        }
+        // Make body have no padding/margin
+        const clonedBody = clonedDoc.body;
+        if (clonedBody) {
+          clonedBody.style.margin = '0';
+          clonedBody.style.padding = '0';
+          clonedBody.style.overflow = 'hidden';
         }
       }
     },
