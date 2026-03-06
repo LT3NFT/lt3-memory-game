@@ -294,10 +294,7 @@ async function showWinScreen() {
 
     const tier = getScoreTier(seconds);
 
-    const [imgBase64, faviconBase64] = await Promise.all([
-      toBase64(`Images/${tier.img}`),
-      toBase64("favicon.png")
-    ]);
+    const imgBase64 = await toBase64(`Images/${tier.img}`);
 
     // Pre-crop the image to maintain aspect ratio (180:240 = 3:4)
     const img = new Image();
@@ -354,7 +351,7 @@ async function showWinScreen() {
 
     // Use the pre-cropped image
     scorecardImg.src = cropCanvas.toDataURL("image/png");
-    scorecardFavicon.src = faviconBase64;
+    scorecardFavicon.src = `favicon.png?v=${Date.now()}`;
     scorecardTime.textContent = seconds + "s";
     scorecardMessage.textContent = tier.message;
     scorecardSub.textContent = tier.sub;
