@@ -403,7 +403,7 @@ async function downloadScorecard() {
   
   html2canvas(card, {
     backgroundColor: null, // No background - we want only the card
-    scale: 4,
+    scale: 6, // Increased from 4 to 6 for better quality
     useCORS: true,
     allowTaint: true,
     logging: false,
@@ -417,6 +417,7 @@ async function downloadScorecard() {
     windowWidth: actualWidth,
     windowHeight: actualHeight,
     removeContainer: true, // Remove container to avoid extra space
+    pixelRatio: 2, // Higher pixel ratio for better quality
     onclone: (clonedDoc) => {
       // Image is already pre-cropped, just ensure dimensions
       const clonedImg = clonedDoc.getElementById('scorecard-img');
@@ -424,6 +425,16 @@ async function downloadScorecard() {
         clonedImg.style.width = '180px';
         clonedImg.style.height = '240px';
         clonedImg.style.objectFit = 'fill';
+        clonedImg.style.imageRendering = 'high-quality';
+      }
+      // Ensure border is visible on desktop
+      if (!isMobile) {
+        const clonedCard = clonedDoc.getElementById('scorecard');
+        if (clonedCard) {
+          clonedCard.style.border = '3px solid #3d2b00';
+          clonedCard.style.borderRadius = '16px';
+          clonedCard.style.boxShadow = '6px 6px 0px #3d2b00';
+        }
       }
       // On mobile, ensure no extra margins/padding/positioning
       if (isMobile) {
@@ -532,25 +543,33 @@ async function downloadScorecard() {
       return;
     }
     
-    // Desktop: crop to exact card dimensions maintaining aspect ratio
+    // Desktop: crop to exact card dimensions including border
     const targetWidth = actualWidth * scale;
     const targetHeight = actualHeight * scale;
     
-    // Find the actual card content bounds by scanning for non-transparent pixels
+    // Find the actual card content bounds by scanning for brown border color (#3d2b00)
     const ctx = canvas.getContext('2d');
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     
-    // Find bounding box of content (non-transparent pixels)
+    // Find bounding box by looking for brown border color (#3d2b00 = rgb(61, 43, 0))
     let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
-    let foundContent = false;
+    let foundBorder = false;
     
     for (let y = 0; y < canvas.height; y++) {
       for (let x = 0; x < canvas.width; x++) {
         const idx = (y * canvas.width + x) * 4;
+        const r = data[idx];
+        const g = data[idx + 1];
+        const b = data[idx + 2];
         const alpha = data[idx + 3];
-        if (alpha > 0) {
-          foundContent = true;
+        
+        // Check if pixel is brown border color (with some tolerance) or has content
+        const isBrown = alpha > 0 && Math.abs(r - 61) < 10 && Math.abs(g - 43) < 10 && Math.abs(b - 0) < 10;
+        const hasContent = alpha > 0;
+        
+        if (isBrown || hasContent) {
+          foundBorder = true;
           minX = Math.min(minX, x);
           minY = Math.min(minY, y);
           maxX = Math.max(maxX, x);
@@ -559,28 +578,10 @@ async function downloadScorecard() {
       }
     }
     
-    if (foundContent) {
-      // Use found bounds and maintain aspect ratio
+    if (foundBorder) {
+      // Use found bounds - include the full border
       const contentWidth = maxX - minX + 1;
       const contentHeight = maxY - minY + 1;
-      const contentAspect = contentWidth / contentHeight;
-      const targetAspect = targetWidth / targetHeight;
-      
-      let drawWidth, drawHeight, drawX, drawY;
-      
-      if (contentAspect > targetAspect) {
-        // Content is wider - fit to height
-        drawHeight = targetHeight;
-        drawWidth = drawHeight * contentAspect;
-        drawX = (targetWidth - drawWidth) / 2;
-        drawY = 0;
-      } else {
-        // Content is taller - fit to width
-        drawWidth = targetWidth;
-        drawHeight = drawWidth / contentAspect;
-        drawX = 0;
-        drawY = (targetHeight - drawHeight) / 2;
-      }
       
       // Create cropped canvas with exact card dimensions
       const croppedCanvas = document.createElement('canvas');
@@ -588,21 +589,21 @@ async function downloadScorecard() {
       croppedCanvas.height = targetHeight;
       const croppedCtx = croppedCanvas.getContext('2d');
       
-      // Fill with background color
-      croppedCtx.fillStyle = "#fdf8ee";
-      croppedCtx.fillRect(0, 0, targetWidth, targetHeight);
+      // Enable high-quality image rendering
+      croppedCtx.imageSmoothingEnabled = true;
+      croppedCtx.imageSmoothingQuality = 'high';
       
-      // Draw the card content, maintaining aspect ratio
+      // Draw the card content, scaling to exact dimensions
       croppedCtx.drawImage(
         canvas,
         minX,
         minY,
         contentWidth,
         contentHeight,
-        drawX,
-        drawY,
-        drawWidth,
-        drawHeight
+        0,
+        0,
+        targetWidth,
+        targetHeight
       );
       
       // Use the cropped canvas
@@ -613,13 +614,13 @@ async function downloadScorecard() {
       link.click();
       document.body.removeChild(link);
     } else {
-      // Fallback if content detection fails
+      // Fallback if border detection fails - use full canvas
       const croppedCanvas = document.createElement('canvas');
       croppedCanvas.width = targetWidth;
       croppedCanvas.height = targetHeight;
       const croppedCtx = croppedCanvas.getContext('2d');
-      croppedCtx.fillStyle = "#fdf8ee";
-      croppedCtx.fillRect(0, 0, targetWidth, targetHeight);
+      croppedCtx.imageSmoothingEnabled = true;
+      croppedCtx.imageSmoothingQuality = 'high';
       croppedCtx.drawImage(canvas, 0, 0, targetWidth, targetHeight);
       
       const link = document.createElement("a");
