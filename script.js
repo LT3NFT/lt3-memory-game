@@ -380,30 +380,30 @@ async function downloadScorecard() {
   // Store original styles
   const originalBorderRadius = card.style.borderRadius;
   const originalTransform = card.style.transform;
+  const originalMargin = card.style.margin;
+  const originalPadding = card.style.padding;
   
   // Temporarily remove rounded corners and scale transform for clean capture
   if (isMobile && hasScaleTransform) {
     card.style.transform = 'none';
   }
-  card.style.borderRadius = '0';
   
   // Wait for layout to settle after removing transform
   await new Promise(resolve => setTimeout(resolve, 150));
   
-  // Get exact dimensions after transform removal
+  // Get exact dimensions
   const cardRect = card.getBoundingClientRect();
   const cardWidth = Math.floor(cardRect.width);
   const cardHeight = Math.floor(cardRect.height);
   
-  // On mobile, use exact card dimensions (420px width, includes border)
-  // The card has a 3px border, so actual content is 420px total
-  const actualWidth = isMobile ? 420 : cardWidth;
-  // Height is image (240px) + top padding (16px) + bottom padding (16px) + border (3px top + 3px bottom) = 278px
-  const actualHeight = isMobile ? 278 : cardHeight;
+  // Desktop: use actual card dimensions (420px width, ~278px height including border)
+  // Mobile: use exact card dimensions (420px width, 278px height)
+  const actualWidth = isMobile ? 420 : 420; // Desktop card is 420px wide
+  const actualHeight = isMobile ? 278 : cardHeight; // Desktop height varies, mobile is fixed
   
   html2canvas(card, {
     backgroundColor: null, // No background - we want only the card
-    scale: 6, // Increased from 4 to 6 for better quality
+    scale: 4, // High quality scale
     useCORS: true,
     allowTaint: true,
     logging: false,
@@ -416,25 +416,25 @@ async function downloadScorecard() {
     scrollY: 0,
     windowWidth: actualWidth,
     windowHeight: actualHeight,
-    removeContainer: true, // Remove container to avoid extra space
-    pixelRatio: 2, // Higher pixel ratio for better quality
+    removeContainer: true,
     onclone: (clonedDoc) => {
-      // Image is already pre-cropped, just ensure dimensions
+      // Ensure image dimensions are correct
       const clonedImg = clonedDoc.getElementById('scorecard-img');
       if (clonedImg) {
         clonedImg.style.width = '180px';
         clonedImg.style.height = '240px';
         clonedImg.style.objectFit = 'fill';
-        clonedImg.style.imageRendering = 'high-quality';
+        clonedImg.style.imageRendering = 'auto';
       }
-      // Ensure border is visible on desktop
-      if (!isMobile) {
-        const clonedCard = clonedDoc.getElementById('scorecard');
-        if (clonedCard) {
-          clonedCard.style.border = '3px solid #3d2b00';
-          clonedCard.style.borderRadius = '16px';
-          clonedCard.style.boxShadow = '6px 6px 0px #3d2b00';
-        }
+      // Ensure scorecard has proper styling
+      const clonedCard = clonedDoc.getElementById('scorecard');
+      if (clonedCard) {
+        clonedCard.style.border = '3px solid #3d2b00';
+        clonedCard.style.borderRadius = '16px';
+        clonedCard.style.boxShadow = '6px 6px 0px #3d2b00';
+        clonedCard.style.margin = '0';
+        clonedCard.style.padding = '0';
+        clonedCard.style.width = actualWidth + 'px';
       }
       // On mobile, ensure no extra margins/padding/positioning
       if (isMobile) {
@@ -543,33 +543,30 @@ async function downloadScorecard() {
       return;
     }
     
-    // Desktop: crop to exact card dimensions including border
+    // Restore original styles for desktop
+    card.style.borderRadius = originalBorderRadius;
+    card.style.margin = originalMargin;
+    card.style.padding = originalPadding;
+    
+    // Desktop: simple direct capture - no complex cropping
+    const scale = 4;
     const targetWidth = actualWidth * scale;
     const targetHeight = actualHeight * scale;
     
-    // Find the actual card content bounds by scanning for brown border color (#3d2b00)
+    // Find content bounds by scanning for non-transparent pixels
     const ctx = canvas.getContext('2d');
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
     
-    // Find bounding box by looking for brown border color (#3d2b00 = rgb(61, 43, 0))
     let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
-    let foundBorder = false;
+    let foundContent = false;
     
     for (let y = 0; y < canvas.height; y++) {
       for (let x = 0; x < canvas.width; x++) {
         const idx = (y * canvas.width + x) * 4;
-        const r = data[idx];
-        const g = data[idx + 1];
-        const b = data[idx + 2];
         const alpha = data[idx + 3];
-        
-        // Check if pixel is brown border color (with some tolerance) or has content
-        const isBrown = alpha > 0 && Math.abs(r - 61) < 10 && Math.abs(g - 43) < 10 && Math.abs(b - 0) < 10;
-        const hasContent = alpha > 0;
-        
-        if (isBrown || hasContent) {
-          foundBorder = true;
+        if (alpha > 0) {
+          foundContent = true;
           minX = Math.min(minX, x);
           minY = Math.min(minY, y);
           maxX = Math.max(maxX, x);
@@ -578,23 +575,22 @@ async function downloadScorecard() {
       }
     }
     
-    if (foundBorder) {
-      // Use found bounds - include the full border
+    // Create final canvas with exact dimensions
+    const finalCanvas = document.createElement('canvas');
+    finalCanvas.width = targetWidth;
+    finalCanvas.height = targetHeight;
+    const finalCtx = finalCanvas.getContext('2d');
+    
+    // Enable high-quality rendering
+    finalCtx.imageSmoothingEnabled = true;
+    finalCtx.imageSmoothingQuality = 'high';
+    
+    if (foundContent) {
       const contentWidth = maxX - minX + 1;
       const contentHeight = maxY - minY + 1;
       
-      // Create cropped canvas with exact card dimensions
-      const croppedCanvas = document.createElement('canvas');
-      croppedCanvas.width = targetWidth;
-      croppedCanvas.height = targetHeight;
-      const croppedCtx = croppedCanvas.getContext('2d');
-      
-      // Enable high-quality image rendering
-      croppedCtx.imageSmoothingEnabled = true;
-      croppedCtx.imageSmoothingQuality = 'high';
-      
-      // Draw the card content, scaling to exact dimensions
-      croppedCtx.drawImage(
+      // Draw the content, scaling proportionally to fill target dimensions
+      finalCtx.drawImage(
         canvas,
         minX,
         minY,
@@ -605,31 +601,18 @@ async function downloadScorecard() {
         targetWidth,
         targetHeight
       );
-      
-      // Use the cropped canvas
-      const link = document.createElement("a");
-      link.download = "LT3ScoreCard.png";
-      link.href = croppedCanvas.toDataURL("image/png", 1.0);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
     } else {
-      // Fallback if border detection fails - use full canvas
-      const croppedCanvas = document.createElement('canvas');
-      croppedCanvas.width = targetWidth;
-      croppedCanvas.height = targetHeight;
-      const croppedCtx = croppedCanvas.getContext('2d');
-      croppedCtx.imageSmoothingEnabled = true;
-      croppedCtx.imageSmoothingQuality = 'high';
-      croppedCtx.drawImage(canvas, 0, 0, targetWidth, targetHeight);
-      
-      const link = document.createElement("a");
-      link.download = "LT3ScoreCard.png";
-      link.href = croppedCanvas.toDataURL("image/png", 1.0);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      // Fallback: use full canvas
+      finalCtx.drawImage(canvas, 0, 0, targetWidth, targetHeight);
     }
+    
+    // Download the final canvas
+    const link = document.createElement("a");
+    link.download = "LT3ScoreCard.png";
+    link.href = finalCanvas.toDataURL("image/png", 1.0);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     
     // Restore original styles (desktop only, mobile already restored)
     card.style.borderRadius = originalBorderRadius;
