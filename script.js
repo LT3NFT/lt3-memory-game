@@ -852,7 +852,7 @@ function buildBoard() {
 
   status.textContent = `Level ${currentLevel + 1} - Get ready...`;
   setTimeout(() => {
-    status.textContent = `Level ${currentLevel + 1} - Memorise the cards!`;
+    status.textContent = `Level ${currentLevel + 1} - Memorize the cards!`;
     flipCardsUp(cardEls, () => {
       runPreviewCountdown(LEVEL_COUNTDOWN[currentLevel], () => {
         flipCardsDown(cardEls, () => {
