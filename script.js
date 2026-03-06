@@ -532,7 +532,7 @@ async function downloadScorecard() {
       return;
     }
     
-    // Desktop: crop to exact card dimensions (same as mobile)
+    // Desktop: crop to exact card dimensions maintaining aspect ratio
     const targetWidth = actualWidth * scale;
     const targetHeight = actualHeight * scale;
     
@@ -559,30 +559,76 @@ async function downloadScorecard() {
       }
     }
     
-    // Use found bounds or fallback to expected dimensions
-    const contentWidth = foundContent ? (maxX - minX + 1) : targetWidth;
-    const contentHeight = foundContent ? (maxY - minY + 1) : targetHeight;
-    const offsetX = foundContent ? minX : 0;
-    const offsetY = foundContent ? minY : 0;
-    
-    // Create cropped canvas with exact card dimensions
-    const croppedCanvas = document.createElement('canvas');
-    croppedCanvas.width = targetWidth;
-    croppedCanvas.height = targetHeight;
-    const croppedCtx = croppedCanvas.getContext('2d');
-    
-    // Draw the card content, scaling to exact dimensions
-    croppedCtx.drawImage(
-      canvas,
-      offsetX,
-      offsetY,
-      contentWidth,
-      contentHeight,
-      0,
-      0,
-      targetWidth,
-      targetHeight
-    );
+    if (foundContent) {
+      // Use found bounds and maintain aspect ratio
+      const contentWidth = maxX - minX + 1;
+      const contentHeight = maxY - minY + 1;
+      const contentAspect = contentWidth / contentHeight;
+      const targetAspect = targetWidth / targetHeight;
+      
+      let drawWidth, drawHeight, drawX, drawY;
+      
+      if (contentAspect > targetAspect) {
+        // Content is wider - fit to height
+        drawHeight = targetHeight;
+        drawWidth = drawHeight * contentAspect;
+        drawX = (targetWidth - drawWidth) / 2;
+        drawY = 0;
+      } else {
+        // Content is taller - fit to width
+        drawWidth = targetWidth;
+        drawHeight = drawWidth / contentAspect;
+        drawX = 0;
+        drawY = (targetHeight - drawHeight) / 2;
+      }
+      
+      // Create cropped canvas with exact card dimensions
+      const croppedCanvas = document.createElement('canvas');
+      croppedCanvas.width = targetWidth;
+      croppedCanvas.height = targetHeight;
+      const croppedCtx = croppedCanvas.getContext('2d');
+      
+      // Fill with background color
+      croppedCtx.fillStyle = "#fdf8ee";
+      croppedCtx.fillRect(0, 0, targetWidth, targetHeight);
+      
+      // Draw the card content, maintaining aspect ratio
+      croppedCtx.drawImage(
+        canvas,
+        minX,
+        minY,
+        contentWidth,
+        contentHeight,
+        drawX,
+        drawY,
+        drawWidth,
+        drawHeight
+      );
+      
+      // Use the cropped canvas
+      const link = document.createElement("a");
+      link.download = "LT3ScoreCard.png";
+      link.href = croppedCanvas.toDataURL("image/png", 1.0);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } else {
+      // Fallback if content detection fails
+      const croppedCanvas = document.createElement('canvas');
+      croppedCanvas.width = targetWidth;
+      croppedCanvas.height = targetHeight;
+      const croppedCtx = croppedCanvas.getContext('2d');
+      croppedCtx.fillStyle = "#fdf8ee";
+      croppedCtx.fillRect(0, 0, targetWidth, targetHeight);
+      croppedCtx.drawImage(canvas, 0, 0, targetWidth, targetHeight);
+      
+      const link = document.createElement("a");
+      link.download = "LT3ScoreCard.png";
+      link.href = croppedCanvas.toDataURL("image/png", 1.0);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
     
     // Restore original styles (desktop only, mobile already restored)
     card.style.borderRadius = originalBorderRadius;

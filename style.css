@@ -792,6 +792,7 @@ button:hover {
 
   .card.matched .card-front {
     overflow: hidden !important;
+    background-color: #fdf8ee !important;
   }
 
   .card.matched .card-front img {
@@ -803,7 +804,7 @@ button:hover {
     max-height: 100% !important;
     object-fit: cover !important;
     object-position: center !important;
-    border-radius: 5px !important;
+    border-radius: 8px !important;
     display: block !important;
     flex-shrink: 0 !important;
   }
