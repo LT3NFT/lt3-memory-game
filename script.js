@@ -396,9 +396,9 @@ async function downloadScorecard() {
   const cardWidth = Math.floor(cardRect.width);
   const cardHeight = Math.floor(cardRect.height);
   
-  // Both desktop and mobile use same dimensions: 420px width, 278px height
-  const actualWidth = 420;
-  const actualHeight = 278; // 240px image + 16px top padding + 16px bottom padding + 3px top border + 3px bottom border
+  // Mobile keeps fixed export dimensions; desktop uses the live frame size
+  const actualWidth = isMobile ? 420 : cardWidth;
+  const actualHeight = isMobile ? 278 : cardHeight; // 240px image + 32px vertical padding + 6px border on mobile
   
   html2canvas(card, {
     backgroundColor: null, // No background - we want only the card
@@ -429,8 +429,8 @@ async function downloadScorecard() {
       const clonedCard = clonedDoc.getElementById('scorecard');
       if (clonedCard) {
         clonedCard.style.border = '3px solid #3d2b00';
-        clonedCard.style.borderRadius = '16px';
-        clonedCard.style.boxShadow = '6px 6px 0px #3d2b00';
+        clonedCard.style.borderRadius = isMobile ? '16px' : '0';
+        clonedCard.style.boxShadow = 'none';
         clonedCard.style.margin = '0';
         clonedCard.style.padding = '0';
         clonedCard.style.width = actualWidth + 'px';
@@ -541,66 +541,10 @@ async function downloadScorecard() {
       return;
     }
     
-    // Desktop: same exact logic as mobile - clean rectangular export
-    const targetWidth = 420 * scale; // Exact card width
-    const targetHeight = 278 * scale; // Exact card height (240 image + 32 padding + 6 border)
-    
-    // Find the actual card content bounds by scanning for non-transparent pixels
-    const ctx = canvas.getContext('2d');
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-    const data = imageData.data;
-    
-    // Find bounding box of content (non-transparent pixels)
-    let minX = canvas.width, minY = canvas.height, maxX = 0, maxY = 0;
-    let foundContent = false;
-    
-    for (let y = 0; y < canvas.height; y++) {
-      for (let x = 0; x < canvas.width; x++) {
-        const idx = (y * canvas.width + x) * 4;
-        const alpha = data[idx + 3];
-        if (alpha > 0) {
-          foundContent = true;
-          minX = Math.min(minX, x);
-          minY = Math.min(minY, y);
-          maxX = Math.max(maxX, x);
-          maxY = Math.max(maxY, y);
-        }
-      }
-    }
-    
-    // Use found bounds or fallback to expected dimensions
-    const contentWidth = foundContent ? (maxX - minX + 1) : targetWidth;
-    const contentHeight = foundContent ? (maxY - minY + 1) : targetHeight;
-    const offsetX = foundContent ? minX : 0;
-    const offsetY = foundContent ? minY : 0;
-    
-    // Create cropped canvas with exact card dimensions
-    const croppedCanvas = document.createElement('canvas');
-    croppedCanvas.width = targetWidth;
-    croppedCanvas.height = targetHeight;
-    const croppedCtx = croppedCanvas.getContext('2d');
-    
-    // Enable high-quality rendering
-    croppedCtx.imageSmoothingEnabled = true;
-    croppedCtx.imageSmoothingQuality = 'high';
-    
-    // Draw the card content, scaling to exact dimensions
-    croppedCtx.drawImage(
-      canvas,
-      offsetX,
-      offsetY,
-      contentWidth,
-      contentHeight,
-      0,
-      0,
-      targetWidth,
-      targetHeight
-    );
-    
-    // Use the cropped canvas
+    // Desktop: direct frame export (clean rectangle, no stretch, no dead space)
     const link = document.createElement("a");
     link.download = "LT3ScoreCard.png";
-    link.href = croppedCanvas.toDataURL("image/png", 1.0);
+    link.href = canvas.toDataURL("image/png", 1.0);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
