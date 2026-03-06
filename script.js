@@ -473,7 +473,6 @@ async function downloadScorecard() {
     
     // On mobile, crop to exact card dimensions
     if (isMobile) {
-      const scale = 4;
       const targetWidth = 420 * scale; // Exact card width
       const targetHeight = 278 * scale; // Exact card height (240 image + 32 padding + 6 border)
       
@@ -549,9 +548,9 @@ async function downloadScorecard() {
     card.style.padding = originalPadding;
     
     // Desktop: simple direct capture - no complex cropping
-    const scale = 4;
-    const targetWidth = actualWidth * scale;
-    const targetHeight = actualHeight * scale;
+    const desktopScale = 4;
+    const targetWidth = actualWidth * desktopScale;
+    const targetHeight = actualHeight * desktopScale;
     
     // Find content bounds by scanning for non-transparent pixels
     const ctx = canvas.getContext('2d');
@@ -607,12 +606,12 @@ async function downloadScorecard() {
     }
     
     // Download the final canvas
-    const link = document.createElement("a");
-    link.download = "LT3ScoreCard.png";
-    link.href = finalCanvas.toDataURL("image/png", 1.0);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const downloadLink = document.createElement("a");
+    downloadLink.download = "LT3ScoreCard.png";
+    downloadLink.href = finalCanvas.toDataURL("image/png", 1.0);
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
     
     // Restore original styles (desktop only, mobile already restored)
     card.style.borderRadius = originalBorderRadius;
