@@ -358,6 +358,10 @@ h1 {
   transition: transform 0.45s ease;
 }
 
+.card.matched .card-inner {
+  transform: rotateY(180deg) !important;
+}
+
 .card.flipped .card-inner {
   transform: rotateY(180deg);
 }
