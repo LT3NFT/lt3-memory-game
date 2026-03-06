@@ -384,6 +384,7 @@ h1 {
   display: flex;
   align-items: center;
   justify-content: center;
+  box-sizing: border-box;
 }
 
 .card-front img {
@@ -788,14 +789,24 @@ button:hover {
   .card.matched .card-front {
     padding: 0 !important;
     margin: 0 !important;
+    box-sizing: border-box !important;
   }
 
   .card.matched .card-front {
     overflow: hidden !important;
     background-color: #fdf8ee !important;
+    border-radius: 8px !important;
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
   }
 
   .card.matched .card-front img {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
     width: 100% !important;
     height: 100% !important;
     min-width: 100% !important;
@@ -807,6 +818,8 @@ button:hover {
     border-radius: 8px !important;
     display: block !important;
     flex-shrink: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
 
   .card.matched .card-inner {
