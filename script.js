@@ -612,16 +612,6 @@ async function downloadScorecard() {
     document.body.appendChild(downloadLink);
     downloadLink.click();
     document.body.removeChild(downloadLink);
-    
-    // Restore original styles (desktop only, mobile already restored)
-    card.style.borderRadius = originalBorderRadius;
-    
-    const link = document.createElement("a");
-    link.download = "LT3ScoreCard.png";
-    link.href = croppedCanvas.toDataURL("image/png", 1.0);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
   }).catch(err => {
     // Restore original styles on error
     card.style.borderRadius = originalBorderRadius;
