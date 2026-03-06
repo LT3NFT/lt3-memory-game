@@ -420,6 +420,10 @@ h1 {
   animation: matchBounce 0.4s ease forwards;
 }
 
+.card.matched .card-inner {
+  transform: rotateY(180deg) !important;
+}
+
 .card.wrong .card-back,
 .card.wrong .card-front {
   border: 3px solid #ff4444;
@@ -778,12 +782,26 @@ button:hover {
     margin: 0 !important;
   }
 
+  .card.matched .card-front {
+    overflow: hidden !important;
+  }
+
   .card.matched .card-front img {
     width: 100% !important;
     height: 100% !important;
+    min-width: 100% !important;
+    min-height: 100% !important;
+    max-width: 100% !important;
+    max-height: 100% !important;
     object-fit: cover !important;
     object-position: center !important;
     border-radius: 5px !important;
+    display: block !important;
+    flex-shrink: 0 !important;
+  }
+
+  .card.matched .card-inner {
+    transform: rotateY(180deg) !important;
   }
 
   /* Ensure wrong cards fill properly on mobile */
