@@ -387,6 +387,9 @@ async function downloadScorecard() {
   if (isMobile && hasScaleTransform) {
     card.style.transform = 'none';
   }
+  if (isMobile) {
+    card.style.borderRadius = '0';
+  }
   
   // Wait for layout to settle after removing transform
   await new Promise(resolve => setTimeout(resolve, 150));
@@ -429,7 +432,7 @@ async function downloadScorecard() {
       const clonedCard = clonedDoc.getElementById('scorecard');
       if (clonedCard) {
         clonedCard.style.border = '3px solid #3d2b00';
-        clonedCard.style.borderRadius = isMobile ? '16px' : '0';
+        clonedCard.style.borderRadius = '0';
         clonedCard.style.boxShadow = 'none';
         clonedCard.style.margin = '0';
         clonedCard.style.padding = '0';
